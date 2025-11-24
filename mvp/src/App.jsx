@@ -16,27 +16,35 @@ import CreateExam from './views/CreateExam';
 import ExamEvaluator from './views/ExamEvaluator';
 import NotFound from './views/NotFound';
 import VerifyCode from './views/VerifyCode';
-function App() {
-  const [count, setCount] = useState(0)
+import Unauthorized from './views/Unathorized';
 
-  return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/verify" element={<VerifyCode />} />
-      <Route path="/dashboard/admin" element={<DashboardAdmin />} />
-      <Route path="/dashboard/student" element={<DashboardStudent />} />
-      <Route path="/dashboard/teacher" element={<DashboardTeacher />} />
-      <Route path="/databases" element={<DatabasesList />} />
-      <Route path="/student/:id" element={<StudentDetail />} />
-      <Route path="/students" element={<StudentsList />} />
-      <Route path="/teacher/:id" element={<TeacherDetail />} />
-      <Route path="/exam/create" element={<CreateExam />} />
-      <Route path="/exam/take" element={<ExamEvaluator />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+import ProtectedRoute from './routes/ProtectedRoute';
+import RoleRoute from './routes/RoleRoute';
+
+function App() {
+    const [count, setCount] = useState(0)
+
+    return (
+        <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify" element={<VerifyCode />} />
+            <Route path="/login/no-permission" element={<Login noPermission={true} />} />
+
+            <Route path="/dashboard/admin" element={<ProtectedRoute> <RoleRoute allowedRoles={[1]}> <DashboardAdmin />   </RoleRoute> </ProtectedRoute>} />
+            <Route path="/dashboard/teacher" element={<ProtectedRoute> <RoleRoute allowedRoles={[2]}> <DashboardTeacher /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/dashboard/student" element={<ProtectedRoute> <RoleRoute allowedRoles={[3]}> <DashboardStudent /> </RoleRoute> </ProtectedRoute>} />
+
+            <Route path="/databases" element={<ProtectedRoute> <RoleRoute allowedRoles={[1]}> <DatabasesList /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/student/:id" element={<ProtectedRoute> <StudentDetail /> </ProtectedRoute>} />
+            <Route path="/students" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <StudentsList /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/teacher/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherDetail /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/exam/create" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <CreateExam /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/exam/take" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamEvaluator /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+        </Routes>
+    );
 }
 
 export default App

@@ -5,98 +5,151 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/Com
 import { Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../AuthContext";
 
-const Login = () => {
-  const navigate = useNavigate();
+const API_URL = import.meta.env.VITE_API_URL; // http://localhost:3000
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+// Accept optional prop: noPermission
+const Login = ({ noPermission = false }) => {
 
-  // Adaptación: remover el tipo TypeScript
-  const handleLogin = (e) => {
-    e.preventDefault();
+    const { login } = useAuth();
+    const navigate = useNavigate();
 
-    // Aquí luego conectas con tu backend real
-    navigate("/dashboard/student");
-  };
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <Database className="h-8 w-8 text-primary" />
-            </div>
-          </div>
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
-          <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setErrorMsg("");
+        setLoading(true);
 
-          <CardDescription>
-            Ingresa tus credenciales para acceder a SQLEvaluator
-          </CardDescription>
-        </CardHeader>
+        try {
+            const res = await fetch(`${API_URL}/auth/login`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                    email,
+                    password,
+                }),
+            });
 
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+            const data = await res.json().catch(() => ({}));
+            console.log("[Login] backend response:", data);
 
-            {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            if (!res.ok) {
+                throw new Error(data.message || "Credenciales inválidas");
+            }
 
-            <Button type="submit" className="w-full">
-              Ingresar
-            </Button>
-          </form>
+            if (!data.accessToken) {
+                throw new Error("No se recibió accessToken del servidor.");
+            }
 
-          {/* Links debajo */}
-          <div className="mt-6 text-center space-y-4">
+            // Save token + user in context
+            login(data.accessToken, data.user);
 
-            <p className="text-sm text-muted-foreground">
-              ¿No tienes cuenta?{" "}
-              <button
-                onClick={() => navigate("/register")}
-                className="text-primary hover:underline font-medium"
-              >
-                Regístrate aquí
-              </button>
-            </p>
+            const role = data.role || data.user?.role || null;
 
-            <button
-              onClick={() => navigate("/")}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← Volver al inicio
-            </button>
+            if (role === "STUDENT") navigate("/dashboard/student");
+            else if (role === "PROFESSOR") navigate("/dashboard/teacher");
+            else if (role === "ADMIN") navigate("/dashboard/admin");
+            else navigate("/dashboard/student");
+        } catch (err) {
+            console.error("[Login] error:", err);
+            setErrorMsg(err.message || "Error inesperado");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-          </div>
-        </CardContent>
-        
-      </Card>
-    </div>
-  );
+    return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="bg-primary/10 p-3 rounded-full">
+                            <Database className="h-8 w-8 text-primary" />
+                        </div>
+                    </div>
+
+                    {noPermission && (
+                        <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left">
+                            <p className="text-xs text-amber-700">
+                                No tuviste permisos para acceder al recurso anterior.
+                                Ingresa con la cuenta adecuada para continuar.
+                            </p>
+                        </div>
+                    )}
+
+                    <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+                    <CardDescription>
+                        Ingresa tus credenciales para acceder a SQLEvaluator
+                    </CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                    <form onSubmit={handleLogin} className="space-y-4">
+
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="tu@email.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="password">Contraseña</Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        {errorMsg && (
+                            <p className="text-red-500 text-sm">{errorMsg}</p>
+                        )}
+
+                        <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? "Ingresando..." : "Ingresar"}
+                        </Button>
+                    </form>
+
+                    <div className="mt-6 text-center space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            ¿No tienes cuenta?{" "}
+                            <button
+                                onClick={() => navigate("/register")}
+                                className="text-primary hover:underline font-medium"
+                            >
+                                Regístrate aquí
+                            </button>
+                        </p>
+
+                        <button
+                            onClick={() => navigate("/")}
+                            className="text-sm text-muted-foreground hover:text-foreground"
+                        >
+                            ← Volver al inicio
+                        </button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
 };
 
 export default Login;
