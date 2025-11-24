@@ -15,6 +15,7 @@ import TeacherDetail from './views/TeacherDetail';
 import CreateExam from './views/CreateExam';
 import ExamEvaluator from './views/ExamEvaluator';
 import NotFound from './views/NotFound';
+import VerifyCode from './views/VerifyCode';
 function App() {
   const [count, setCount] = useState(0)
 
@@ -23,6 +24,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify" element={<VerifyCode />} />
       <Route path="/dashboard/admin" element={<DashboardAdmin />} />
       <Route path="/dashboard/student" element={<DashboardStudent />} />
       <Route path="/dashboard/teacher" element={<DashboardTeacher />} />

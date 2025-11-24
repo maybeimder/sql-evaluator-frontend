@@ -15,12 +15,12 @@
   --popover-foreground: hsl(222 47% 11%);
 
   /* Primary */
-  --primary: hsl(200 98% 39%);
+  --primary: hsl(159, 45%, 35%);
   --primary-foreground: hsl(204 100% 97%);
-  --primary-hover: hsl(210 79% 40%);
+  --primary-hover: hsl(159, 58%, 22%);
 
   /* Secondary */
-  --secondary: hsl(215 24% 26%);
+  --secondary: hsl(159, 58%, 22%);
   --secondary-foreground: hsl(210 40% 98%);
 
   /* Success */
@@ -33,10 +33,10 @@
 
   /* Muted */
   --muted: hsl(215 20% 65%);
-  --muted-foreground: hsl(222 47% 11%);
+  --muted-foreground: hsl(166, 9%, 52%);
 
   /* Accent */
-  --accent: hsl(158, 23%, 47%);
+  --accent: hsl(157, 14%, 68%);
   --accent-foreground: hsl(215 19% 34%);
 
   /* Destructive */
