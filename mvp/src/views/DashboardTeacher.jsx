@@ -16,13 +16,12 @@ const DashboardTeacher = () => {
 
     async function logout_function() {
         logout();
-        await fetch("http://localhost:3000/auth/logout", {
+        await fetch(`${API_URL}/auth/logout`, {
             method: "POST",
             credentials: "include"
         });
         navigate("/")
     }
-
 
     // Datos de ejemplo de exámenes (mock data)
     const mockExams = [

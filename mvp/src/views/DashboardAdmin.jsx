@@ -11,13 +11,15 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const DashboardAdmin = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
 
     async function logout_function() {
         logout();
-        await fetch("http://localhost:3000/auth/logout", {
+        await fetch(`${API_URL}/auth/logout`, {
             method: "POST",
             credentials: "include"
         });

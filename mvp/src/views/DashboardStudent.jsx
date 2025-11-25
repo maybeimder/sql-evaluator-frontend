@@ -4,13 +4,15 @@ import { Database, Trophy, Clock, CheckCircle2, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const DashboardStudent = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
 
     async function logout_function() {
         logout();
-        await fetch("http://localhost:3000/auth/logout", {
+        await fetch(`${API_URL}/auth/logout`, {
             method: "POST",
             credentials: "include"
         }); 

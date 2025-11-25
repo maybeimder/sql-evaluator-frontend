@@ -36,7 +36,7 @@ function App() {
             <Route path="/dashboard/teacher" element={<ProtectedRoute> <RoleRoute allowedRoles={[2]}> <DashboardTeacher /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/dashboard/student" element={<ProtectedRoute> <RoleRoute allowedRoles={[3]}> <DashboardStudent /> </RoleRoute> </ProtectedRoute>} />
 
-            <Route path="/databases" element={<ProtectedRoute> <RoleRoute allowedRoles={[1]}> <DatabasesList /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/databases" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <DatabasesList /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/student/:id" element={<ProtectedRoute> <StudentDetail /> </ProtectedRoute>} />
             <Route path="/students" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <StudentsList /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/teacher/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherDetail /> </RoleRoute> </ProtectedRoute>} />

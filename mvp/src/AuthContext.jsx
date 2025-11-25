@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
-                const res = await fetch(`${API_URL}/auth/refresh`, {
+                const res = await fetch(`${API_URL}/auth/refresh-token`, {
                     method: "POST",
                     credentials: "include",
                 });
