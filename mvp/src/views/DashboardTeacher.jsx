@@ -1,34 +1,68 @@
-// Importación de componentes UI y utilidades
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Database, FileText, Users, Plus, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 /**
  * DashboardTeacher - Panel principal para profesores
  * Permite gestionar exámenes, estudiantes y bases de datos
  */
 const DashboardTeacher = () => {
-    // Hook de navegación para redireccionar entre páginas
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, user, accessToken } = useAuth();
+
+    const [exams, setExams] = useState([]);
+    const [loadingExams, setLoadingExams] = useState(false);
+    const [errorExams, setErrorExams] = useState("");
 
     async function logout_function() {
         logout();
         await fetch(`${API_URL}/auth/logout`, {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
         });
-        navigate("/")
+        navigate("/");
     }
 
-    // Datos de ejemplo de exámenes (mock data)
-    const mockExams = [
-        { id: 1, title: "SQL Básico - SELECT", students: 24, status: "Activo" },
-        { id: 2, title: "JOIN y Relaciones", students: 18, status: "Activo" },
-        { id: 3, title: "Funciones Agregadas", students: 12, status: "Cerrado" },
-    ];
+    useEffect(() => {
+        const fetchExams = async () => {
+            if (!accessToken) return;
+
+            setLoadingExams(true);
+            setErrorExams("");
+
+            try {
+                const res = await fetch(`${API_URL}/exams`, {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    credentials: "include",
+                });
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || "Error al cargar los exámenes");
+                }
+
+                const data = await res.json();
+                // Esperamos algo como:
+                // [ { ExamID, Title, StartTime, EndTime, students }, ... ]
+                setExams(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("[DashboardTeacher] error fetching exams:", err);
+                setErrorExams(err.message || "Error inesperado al cargar los exámenes");
+            } finally {
+                setLoadingExams(false);
+            }
+        };
+
+        fetchExams();
+    }, [accessToken]);
 
     return (
         <div className="min-h-screen bg-background">
@@ -42,7 +76,9 @@ const DashboardTeacher = () => {
                     </div>
                     {/* Información del usuario y botón de salir */}
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">Profesor: María González</span>
+                        <span className="text-sm text-muted-foreground">
+                            Profesor: {user?.FullName || "—"}
+                        </span>
                         <Button variant="ghost" size="sm" onClick={logout_function}>
                             <LogOut className="h-4 w-4 mr-2" />
                             Salir
@@ -55,13 +91,17 @@ const DashboardTeacher = () => {
                 {/* Título y descripción del dashboard */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-foreground mb-2">Panel del Profesor</h1>
-                    <p className="text-muted-foreground">Gestiona tus exámenes, estudiantes y bases de datos</p>
+                    <p className="text-muted-foreground">
+                        Gestiona tus exámenes, estudiantes y bases de datos
+                    </p>
                 </div>
 
-                {/* Acciones rápidas - Cards clicables para navegación */}
+                {/* Acciones rápidas */}
                 <div className="grid md:grid-cols-3 gap-6 mb-8">
-                    {/* Card para crear nuevo examen */}
-                    <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => navigate("/exam/create")}>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => navigate("/exam/create")}
+                    >
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Plus className="h-5 w-5 text-primary" />
@@ -71,8 +111,10 @@ const DashboardTeacher = () => {
                         </CardHeader>
                     </Card>
 
-                    {/* Card para ver y gestionar estudiantes */}
-                    <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => navigate("/students")}>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => navigate("/students")}
+                    >
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5 text-success" />
@@ -82,8 +124,10 @@ const DashboardTeacher = () => {
                         </CardHeader>
                     </Card>
 
-                    {/* Card para gestionar bases de datos */}
-                    <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => navigate("/databases")}>
+                    <Card
+                        className="cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => navigate("/databases")}
+                    >
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Database className="h-5 w-5 text-accent" />
@@ -104,39 +148,64 @@ const DashboardTeacher = () => {
                         <CardDescription>Lista de todos tus exámenes</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-3">
-                            {/* Mapeo de exámenes para mostrar cada uno */}
-                            {mockExams.map((exam) => (
-                                <div
-                                    key={exam.id}
-                                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                                >
-                                    {/* Información del examen */}
-                                    <div>
-                                        <h3 className="font-semibold text-foreground">{exam.title}</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            {exam.students} estudiantes inscritos
-                                        </p>
+                        {errorExams && (
+                            <p className="mb-3 text-sm text-red-500">{errorExams}</p>
+                        )}
+
+                        {loadingExams ? (
+                            <p className="text-sm text-muted-foreground">
+                                Cargando exámenes...
+                            </p>
+                        ) : exams.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                Aún no has creado exámenes.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {exams.map((exam) => (
+                                    <div
+                                        key={exam.ExamID}
+                                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                                    >
+                                        {/* Información del examen */}
+                                        <div>
+                                            <h3 className="font-semibold text-foreground">
+                                                {exam.Title}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Inicio:{" "}
+                                                {exam.StartTime
+                                                    ? new Date(exam.StartTime).toLocaleString()
+                                                    : "—"}
+                                                {" • "}
+                                                Fin:{" "}
+                                                {exam.EndTime
+                                                    ? new Date(exam.EndTime).toLocaleString()
+                                                    : "—"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Estudiantes inscritos: {exam.students ?? 0}
+                                            </p>
+                                        </div>
+
+                                        {/* Acciones del examen */}
+                                        <div className="flex items-center gap-3">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    navigate(`/teacher/exams/${exam.ExamID}`, {
+                                                        state: { examID: exam.ExamID },
+                                                    })
+                                                }
+                                            >
+                                                Ver detalles
+                                            </Button>
+                                        </div>
                                     </div>
-                                    {/* Estado y acciones del examen */}
-                                    <div className="flex items-center gap-3">
-                                        {/* Badge de estado con color condicional */}
-                                        <span
-                                            className={`px-3 py-1 rounded-full text-sm ${exam.status === "Activo"
-                                                    ? "bg-success/10 text-success"
-                                                    : "bg-muted text-muted-foreground"
-                                                }`}
-                                        >
-                                            {exam.status}
-                                        </span>
-                                        {/* Botón para ver detalles del examen */}
-                                        <Button variant="outline" size="sm" onClick={() => navigate(`/teacher/exams/${exam.id}`)}>
-                                            Ver detalles
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

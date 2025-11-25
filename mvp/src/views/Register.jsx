@@ -19,7 +19,7 @@ const Register = () => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [role, setRole] = useState("");
+    const [role, setRole] = useState("3");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
@@ -34,7 +34,7 @@ const Register = () => {
             const res = await fetch(`${API_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json"},
-                body: JSON.stringify({ code, name, email, password }),
+                body: JSON.stringify({ code, name, email, password, role: parseInt(role) }),
                 credentials: "include",
             });
 
@@ -48,7 +48,6 @@ const Register = () => {
             sessionStorage.setItem("pendingPassword", password);
 
             const data = await res.json();
-            console.log(data)
 
             navigate("/verify", {
                 state: {
@@ -130,8 +129,8 @@ const Register = () => {
                                     <SelectValue placeholder="Selecciona tu rol" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="student">Estudiante</SelectItem>
-                                    <SelectItem value="teacher">Profesor</SelectItem>
+                                    <SelectItem value="3" >Estudiante</SelectItem>
+                                    <SelectItem value="2" >Profesor</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

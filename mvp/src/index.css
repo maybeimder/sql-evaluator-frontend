@@ -32,7 +32,7 @@
   --warning-foreground: hsl(0 0% 100%);
 
   /* Muted */
-  --muted: hsl(215 20% 65%);
+  --muted: hsl(184, 24%, 86%);
   --muted-foreground: hsl(166, 9%, 52%);
 
   /* Accent */

@@ -7,15 +7,27 @@ export function AuthProvider({ children }) {
     const [accessToken, setAccessToken] = useState(
         localStorage.getItem("accessToken") || null
     );
-    const [user, setUser] = useState(
-        localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null
-    );
+
+    let initialUser = null;
+
+    try {
+        const stored = localStorage.getItem("user");
+        if (stored && stored !== "undefined") {
+            initialUser = JSON.parse(stored);
+        }
+    } catch (e) {
+        initialUser = null;
+    }
+
+    const [user, setUser] = useState(initialUser)
 
     function login(token, userData) {
+        console.log("Se hace login")
         setAccessToken(token);
         setUser(userData);
 
         // Persistir solo el accessToken (seguro)
+        console.log(token, userData)
         localStorage.setItem("accessToken", token);
         localStorage.setItem("user", JSON.stringify(userData));
     }
@@ -36,15 +48,15 @@ export function AuthProvider({ children }) {
                     method: "POST",
                     credentials: "include",
                 });
-
+                console.log(res)
                 if (!res.ok) throw new Error();
 
                 const data = await res.json();
-                login(data.accessToken, data.user); // Actualiza sesión
+                login(data.accessToken, user);
             } catch {
                 logout();
             }
-        }, 1000 * 60 * 5); // cada 5 minutos
+        }, 1000 * 60 * 10);
 
         return () => clearInterval(interval);
     }, []);

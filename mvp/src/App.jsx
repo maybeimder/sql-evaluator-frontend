@@ -16,7 +16,6 @@ import CreateExam from './views/CreateExam';
 import ExamEvaluator from './views/ExamEvaluator';
 import NotFound from './views/NotFound';
 import VerifyCode from './views/VerifyCode';
-import Unauthorized from './views/Unathorized';
 
 import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';

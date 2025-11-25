@@ -96,7 +96,10 @@ const VerifyCode = () => {
             sessionStorage.removeItem("pendingPassword");
 
             // TODO: you can redirect according to role later
-            navigate("/dashboard/student");
+            if (role.includes(3)) navigate("/dashboard/student");
+            else if (role.includes(2)) navigate("/dashboard/teacher");
+            else if (role.includes(1)) navigate("/dashboard/admin");
+            else navigate("/dashboard/student");
         } catch (err) {
             setErrorMsg(err.message || "Error verifying code");
         } finally {
