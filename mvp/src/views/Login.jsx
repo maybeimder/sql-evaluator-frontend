@@ -53,11 +53,11 @@ const Login = ({ noPermission = false }) => {
             // Save token + user in context
             login(data.accessToken, data.user);
 
-            const role = data.role || data.user?.role || null;
+            const role = data.user?.Roles || null;
 
-            if (role === "STUDENT") navigate("/dashboard/student");
-            else if (role === "PROFESSOR") navigate("/dashboard/teacher");
-            else if (role === "ADMIN") navigate("/dashboard/admin");
+            if (role.includes(3)) navigate("/dashboard/student");
+            else if (role.includes(2)) navigate("/dashboard/teacher");
+            else if (role.includes(1)) navigate("/dashboard/admin");
             else navigate("/dashboard/student");
         } catch (err) {
             console.error("[Login] error:", err);
