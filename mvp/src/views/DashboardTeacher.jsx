@@ -130,7 +130,7 @@ const DashboardTeacher = () => {
                                             {exam.status}
                                         </span>
                                         {/* Botón para ver detalles del examen */}
-                                        <Button variant="outline" size="sm">
+                                        <Button variant="outline" size="sm" onClick={() => navigate(`/teacher/exams/${exam.id}`)}>
                                             Ver detalles
                                         </Button>
                                     </div>
