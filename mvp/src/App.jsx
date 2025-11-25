@@ -20,7 +20,9 @@ import Unauthorized from './views/Unathorized';
 
 import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';
-
+import ExamDetailStudent from './views/ExamDetailStudent';
+import TeacherExamDetail from './views/TeacherExamDetail';
+import TeacherExamStudentDetail from './views/TeacherExamStudentDetail';
 function App() {
     const [count, setCount] = useState(0)
 
@@ -42,6 +44,10 @@ function App() {
             <Route path="/teacher/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherDetail /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/exam/create" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <CreateExam /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/exam/take" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamEvaluator /> </RoleRoute> </ProtectedRoute>} />
+            
+            <Route path="/exams/:id" element={<ExamDetailStudent />} />
+            <Route path="/teacher/exams/:id" element={<TeacherExamDetail />} />
+            <Route path="/teacher/exams/:examId/students/:studentId" element={<TeacherExamStudentDetail />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

@@ -151,7 +151,7 @@ const DashboardStudent = () => {
                                             <div className="text-2xl font-bold text-success">{exam.score}%</div>
                                             <div className="text-xs text-muted-foreground">Calificación</div>
                                         </div>
-                                        <Button variant="outline" size="sm">
+                                        <Button variant="outline" size="sm" onClick={() => navigate(`/exams/${exam.id}`)}>
                                             Ver detalles
                                         </Button>
                                     </div>
