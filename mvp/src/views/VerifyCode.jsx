@@ -77,7 +77,7 @@ const VerifyCode = () => {
                     email,
                     password,
                 }),
-                credentials: "include", // important to receive HttpOnly refreshToken cookie
+                credentials: "include",
             });
 
             if (!loginRes.ok) {
@@ -91,21 +91,25 @@ const VerifyCode = () => {
                 login(loginData.accessToken, loginData.user);
             }
 
-            // Clear temp stored credentials
+            // Limpiar credenciales temporales
             sessionStorage.removeItem("pendingEmail");
             sessionStorage.removeItem("pendingPassword");
 
-            // TODO: you can redirect according to role later
-            if (role.includes(3)) navigate("/dashboard/student");
-            else if (role.includes(2)) navigate("/dashboard/teacher");
-            else if (role.includes(1)) navigate("/dashboard/admin");
+            // 👇 AQUÍ EL FIX
+            const roles = loginData.user?.Roles || [];
+
+            if (roles.includes(3)) navigate("/dashboard/student");
+            else if (roles.includes(2)) navigate("/dashboard/teacher");
+            else if (roles.includes(1)) navigate("/dashboard/admin");
             else navigate("/dashboard/student");
+
         } catch (err) {
             setErrorMsg(err.message || "Error verifying code");
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">

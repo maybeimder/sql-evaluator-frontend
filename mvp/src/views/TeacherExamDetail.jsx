@@ -118,7 +118,7 @@ const TeacherExamDetail = () => {
             const data = await res.json();
             // Data esperada: { ok, roleID, count, users: [...] }
             const rawUsers = data.users || [];
-            
+
             const normalized = rawUsers.map((u) => ({
                 id: u.UserID || u.id,
                 name: u.FullName || u.name,
@@ -149,41 +149,69 @@ const TeacherExamDetail = () => {
     const availableToAssign = availableStudents.filter(
         (s) =>
             !students.some(
-                (as) =>
-                    (as.StudentID || as.id) === s.id // no listar los ya asignados
+                (as) => (as.StudentID || as.id) === s.id // do not list already assigned
             )
     );
 
-    const handleAssignStudent = () => {
+    const handleAssignStudent = async () => {
         if (!selectedStudentId) return;
+
+        if (!accessToken) {
+            alert("Tu sesión ha expirado. Inicia sesión nuevamente.");
+            navigate("/login");
+            return;
+        }
 
         const student = availableStudents.find(
             (s) => String(s.id) === String(selectedStudentId)
         );
         if (!student) return;
 
-        // Aquí en realidad llamarías al backend: POST /exams/:examID/assign
-        console.log(
-            "[TeacherExamDetail] Asignar estudiante",
-            student,
-            "al examen",
-            exam?.ExamID || id
-        );
+        // Determine examID from exam object or URL param
+        const examID = exam?.ExamID || id;
 
-        // Solo UI mock: agregar al estado local
-        setStudents((prev) => [
-            ...prev,
-            {
-                id: student.id,
-                name: student.name,
-                email: student.email,
-                status: "Pendiente",
-                score: null,
-            },
-        ]);
+        try {
+            const assignmentRes = await fetch(`${API_URL}/assignments`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    ExamID: examID,
+                    StudentID: student.id,
+                }),
+            });
 
-        setSelectedStudentId("");
-        setShowAssignPanel(false);
+            if (!assignmentRes.ok) {
+                const errData = await assignmentRes.json().catch(() => ({}));
+                throw new Error(
+                    errData.message || "Error al asignar el estudiante al examen"
+                );
+            }
+
+            const assignmentData = await assignmentRes.json();
+            console.log("[TeacherExamDetail] assignment created:", assignmentData);
+
+            // Update local UI: add student to students list
+            setStudents((prev) => [
+                ...prev,
+                {
+                    StudentID: student.id,
+                    FullName: student.name,
+                    Email: student.email,
+                    status: "Pendiente",
+                    score: null,
+                },
+            ]);
+
+            setSelectedStudentId("");
+            setShowAssignPanel(false);
+        } catch (err) {
+            console.error("[TeacherExamDetail] error assigning student:", err);
+            alert(err.message || "Error al asignar el estudiante");
+        }
     };
 
     // =====================
@@ -281,8 +309,8 @@ const TeacherExamDetail = () => {
                         <div className="flex flex-col items-end gap-2">
                             <span
                                 className={`px-3 py-1 rounded-full text-xs ${examStatus === "Activo"
-                                        ? "bg-success/10 text-success"
-                                        : "bg-muted text-muted-foreground"
+                                    ? "bg-success/10 text-success"
+                                    : "bg-muted text-muted-foreground"
                                     }`}
                             >
                                 {examStatus}
@@ -440,10 +468,10 @@ const TeacherExamDetail = () => {
                                                     typeof score === "number" ? (
                                                     <span
                                                         className={`font-semibold ${score >= 90
-                                                                ? "text-success"
-                                                                : score >= 70
-                                                                    ? "text-primary"
-                                                                    : "text-destructive"
+                                                            ? "text-success"
+                                                            : score >= 70
+                                                                ? "text-primary"
+                                                                : "text-destructive"
                                                             }`}
                                                     >
                                                         {score}%
