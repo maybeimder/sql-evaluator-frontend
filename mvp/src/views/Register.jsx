@@ -1,7 +1,6 @@
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -12,6 +11,66 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/Components/ui/select";
+
+// Fondo animado con blobs
+const AnimatedBackground = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Blob 1 — índigo */}
+        <div style={{
+            position: 'absolute', width: '700px', height: '700px',
+            borderRadius: '50%', filter: 'blur(60px)', opacity: 0.55,
+            background: 'radial-gradient(circle, #6366f1, transparent 70%)',
+            top: '-200px', left: '-150px',
+            animation: 'blob1 8s ease-in-out infinite',
+        }} />
+        {/* Blob 2 — violeta */}
+        <div style={{
+            position: 'absolute', width: '650px', height: '650px',
+            borderRadius: '50%', filter: 'blur(60px)', opacity: 0.5,
+            background: 'radial-gradient(circle, #a78bfa, transparent 70%)',
+            bottom: '-150px', right: '-100px',
+            animation: 'blob2 10s ease-in-out infinite',
+        }} />
+        {/* Blob 3 — cyan */}
+        <div style={{
+            position: 'absolute', width: '500px', height: '500px',
+            borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4,
+            background: 'radial-gradient(circle, #38bdf8, transparent 70%)',
+            top: '40%', left: '55%',
+            animation: 'blob3 12s ease-in-out infinite',
+        }} />
+        {/* Blob 4 — rosa/magenta */}
+        <div style={{
+            position: 'absolute', width: '450px', height: '450px',
+            borderRadius: '50%', filter: 'blur(55px)', opacity: 0.35,
+            background: 'radial-gradient(circle, #e879f9, transparent 70%)',
+            bottom: '15%', left: '5%',
+            animation: 'blob4 9s ease-in-out infinite',
+        }} />
+
+        <style>{`
+      @keyframes blob1 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(80px, 60px) scale(1.15); }
+        66% { transform: translate(-40px, 80px) scale(0.92); }
+      }
+      @keyframes blob2 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(-70px, -60px) scale(1.12); }
+        66% { transform: translate(60px, -80px) scale(0.9); }
+      }
+      @keyframes blob3 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(-60px, 70px) scale(1.18); }
+        66% { transform: translate(70px, -40px) scale(0.88); }
+      }
+      @keyframes blob4 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(80px, -70px) scale(1.15); }
+      }
+    `}</style>
+    </div>
+);
 
 const Register = () => {
     const navigate = useNavigate();
@@ -63,23 +122,48 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="bg-primary/10 p-3 rounded-full">
-                            <Database className="h-8 w-8 text-primary" />
+        <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+            
+            {/* Fondo animado */}
+            <AnimatedBackground />
+
+            {/* Card de registro */}
+            <div className="relative z-10 w-full max-w-md">
+                <div style={{
+                    background: 'rgba(26, 29, 53, 0.7)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    borderRadius: '16px',
+                    padding: '40px 36px',
+                }}>
+                    
+                    {/* Ícono */}
+                    <div className="flex justify-center mb-6">
+                        <div style={{
+                            width: '52px', height: '52px',
+                            background: 'rgba(99, 102, 241, 0.15)',
+                            border: '1px solid rgba(99, 102, 241, 0.3)',
+                            borderRadius: '12px',
+                            display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center',
+                        }}>
+                            <Database className="h-6 w-6 text-primary" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl">Crear Cuenta</CardTitle>
-                    <CardDescription>
-                        Completa el formulario para unirte a SQLEvaluator
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleRegister} className="space-y-4">
+
+                    {/* Título */}
+                    <h1 className="text-2xl font-bold text-foreground text-center mb-2">
+                        Crear Cuenta
+                    </h1>
+                    <p className="text-sm text-muted-foreground text-center mb-8">
+                        Completa el formulario para unirte a QueryLogic
+                    </p>
+
+                    {/* Formulario */}
+                    <form onSubmit={handleRegister} className="space-y-5">
                         <div className="space-y-2">
-                            <Label htmlFor="code">Codigo Académico</Label>
+                            <Label htmlFor="code" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Código Académico
+                            </Label>
                             <Input
                                 id="code"
                                 type="text"
@@ -87,10 +171,18 @@ const Register = () => {
                                 value={code}
                                 onChange={(e) => setCode(e.target.value)}
                                 required
+                                style={{
+                                    background: 'rgba(17, 19, 31, 0.8)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '8px',
+                                }}
+                                className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="name">Nombre completo</Label>
+                            <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Nombre completo
+                            </Label>
                             <Input
                                 id="name"
                                 type="text"
@@ -98,21 +190,37 @@ const Register = () => {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
+                                style={{
+                                    background: 'rgba(17, 19, 31, 0.8)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '8px',
+                                }}
+                                className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Email
+                            </Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="tu@email.com"
+                                placeholder="tu@uninorte.edu.co"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                style={{
+                                    background: 'rgba(17, 19, 31, 0.8)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '8px',
+                                }}
+                                className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Contraseña</Label>
+                            <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Contraseña
+                            </Label>
                             <Input
                                 id="password"
                                 type="password"
@@ -120,12 +228,28 @@ const Register = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                style={{
+                                    background: 'rgba(17, 19, 31, 0.8)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '8px',
+                                }}
+                                className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="role">Tipo de cuenta</Label>
+                            <Label htmlFor="role" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Tipo de cuenta
+                            </Label>
                             <Select value={role} onValueChange={setRole} required>
-                                <SelectTrigger id="role">
+                                <SelectTrigger 
+                                    id="role"
+                                    style={{
+                                        background: 'rgba(17, 19, 31, 0.8)',
+                                        border: '1px solid rgba(99, 102, 241, 0.2)',
+                                        borderRadius: '8px',
+                                    }}
+                                    className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                                >
                                     <SelectValue placeholder="Selecciona tu rol" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -136,36 +260,43 @@ const Register = () => {
                         </div>
 
                         {errorMsg && (
-                            <p className="text-sm text-red-500">
-                                {errorMsg}
-                            </p>
+                            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
+                                <p className="text-xs text-destructive">{errorMsg}</p>
+                            </div>
                         )}
 
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button 
+                            type="submit" 
+                            className="w-full mt-2" 
+                            disabled={loading}
+                            style={{ boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)' }}
+                        >
                             {loading ? "Registrando..." : "Registrarse"}
                         </Button>
                     </form>
 
-
-                    <div className="mt-6 text-center space-y-4">
+                    {/* Links */}
+                    <div className="mt-6 text-center space-y-3">
                         <p className="text-sm text-muted-foreground">
                             ¿Ya tienes cuenta?{" "}
                             <button
+                                type="button"
                                 onClick={() => navigate("/login")}
-                                className="text-primary hover:underline font-medium"
+                                className="text-primary hover:underline font-semibold"
                             >
                                 Inicia sesión
                             </button>
                         </p>
                         <button
+                            type="button"
                             onClick={() => navigate("/")}
-                            className="text-sm text-muted-foreground hover:text-foreground"
+                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                         >
                             ← Volver al inicio
                         </button>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 };

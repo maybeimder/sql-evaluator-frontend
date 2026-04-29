@@ -1,213 +1,259 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database, FileText, Users, Plus, LogOut } from "lucide-react";
+import { Button } from "@/Components/ui/button";
+import { Database, FileText, Users, Plus, LogOut, Clock, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-/**
- * DashboardTeacher - Panel principal para profesores
- * Permite gestionar exámenes, estudiantes y bases de datos
- */
+const getExamStatus = (exam) => {
+    const now = new Date();
+    const start = exam.StartTime ? new Date(exam.StartTime) : null;
+    const end = exam.EndTime ? new Date(exam.EndTime) : null;
+    if (!start || !end) return { label: "Sin fecha", color: "#7c7fa8", bg: "rgba(124,127,168,0.1)" };
+    if (now < start) return { label: "Próximo", color: "#fbbf24", bg: "rgba(251,191,36,0.1)" };
+    if (now > end) return { label: "Cerrado", color: "#a78bfa", bg: "rgba(167,139,250,0.1)" };
+    return { label: "Abierto", color: "#34d399", bg: "rgba(52,211,153,0.1)" };
+};
+
 const DashboardTeacher = () => {
     const navigate = useNavigate();
     const { logout, user, accessToken } = useAuth();
-
     const [exams, setExams] = useState([]);
     const [loadingExams, setLoadingExams] = useState(false);
     const [errorExams, setErrorExams] = useState("");
 
     async function logout_function() {
         logout();
-        await fetch(`${API_URL}/auth/logout`, {
-            method: "POST",
-            credentials: "include",
-        });
+        await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
         navigate("/");
     }
 
     useEffect(() => {
         const fetchExams = async () => {
             if (!accessToken) return;
-
             setLoadingExams(true);
             setErrorExams("");
-
             try {
                 const res = await fetch(`${API_URL}/exams`, {
                     method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
+                    headers: { Authorization: `Bearer ${accessToken}` },
                     credentials: "include",
                 });
-
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || "Error al cargar los exámenes");
                 }
-
                 const data = await res.json();
-                // Esperamos algo como:
-                // [ { ExamID, Title, StartTime, EndTime, students }, ... ]
                 setExams(Array.isArray(data) ? data : []);
             } catch (err) {
-                console.error("[DashboardTeacher] error fetching exams:", err);
-                setErrorExams(err.message || "Error inesperado al cargar los exámenes");
+                setErrorExams(err.message || "Error inesperado");
             } finally {
                 setLoadingExams(false);
             }
         };
-
         fetchExams();
     }, [accessToken]);
 
+    const initials = user?.FullName
+        ? user.FullName.split(" ").map(w => w[0]).slice(0, 2).join("")
+        : "P";
+
     return (
         <div className="min-h-screen bg-background">
-            {/* Cabecera de la aplicación */}
-            <header className="border-b border-border bg-card">
-                <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                    {/* Logo y nombre de la aplicación */}
-                    <div className="flex items-center gap-2">
-                        <Database className="h-8 w-8 text-primary" />
-                        <span className="text-2xl font-bold text-foreground">SQLEvaluator</span>
+
+            {/* Navbar */}
+            <header className="border-b border-white/10 bg-card/60 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
+                <div className="container mx-auto px-8 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 group cursor-pointer">
+                        <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 group-hover:shadow-primary/40 transition-all duration-300">
+                            <Database className="h-4 w-4 text-white group-hover:rotate-12 transition-transform duration-300" />
+                        </div>
+                        <span className="text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300">QueryLogic</span>
                     </div>
-                    {/* Información del usuario y botón de salir */}
                     <div className="flex items-center gap-4">
                         <span className="text-sm text-muted-foreground">
-                            Profesor: {user?.FullName || "—"}
+                            Prof. <span className="font-medium text-foreground">{user?.FullName || "—"}</span>
                         </span>
-                        <Button variant="ghost" size="sm" onClick={logout_function}>
-                            <LogOut className="h-4 w-4 mr-2" />
+                        <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary hover:scale-105 hover:bg-primary/20 transition-all duration-300 cursor-default">
+                            {initials}
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={logout_function}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2 active:scale-95 transition-all duration-200">
+                            <LogOut className="h-4 w-4" />
                             Salir
                         </Button>
                     </div>
                 </div>
             </header>
 
-            <div className="container mx-auto px-4 py-8">
-                {/* Título y descripción del dashboard */}
+            <div className="container mx-auto px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+                {/* Título */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-foreground mb-2">Panel del Profesor</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">Panel del Profesor</h1>
+                    <p className="text-sm text-muted-foreground mt-2">
                         Gestiona tus exámenes, estudiantes y bases de datos
                     </p>
                 </div>
 
-                {/* Acciones rápidas */}
-                <div className="grid md:grid-cols-3 gap-6 mb-8">
-                    <Card
-                        className="cursor-pointer hover:border-primary transition-colors"
-                        onClick={() => navigate("/exam/create")}
-                    >
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Plus className="h-5 w-5 text-primary" />
-                                Crear Examen
-                            </CardTitle>
-                            <CardDescription>Nuevo examen con preguntas SQL</CardDescription>
-                        </CardHeader>
-                    </Card>
-
-                    <Card
-                        className="cursor-pointer hover:border-primary transition-colors"
-                        onClick={() => navigate("/students")}
-                    >
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Users className="h-5 w-5 text-success" />
-                                Ver Estudiantes
-                            </CardTitle>
-                            <CardDescription>Gestionar lista de estudiantes</CardDescription>
-                        </CardHeader>
-                    </Card>
-
-                    <Card
-                        className="cursor-pointer hover:border-primary transition-colors"
-                        onClick={() => navigate("/databases")}
-                    >
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Database className="h-5 w-5 text-accent" />
-                                Bases de Datos
-                            </CardTitle>
-                            <CardDescription>Administrar bases de datos</CardDescription>
-                        </CardHeader>
-                    </Card>
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                    {[
+                        { label: "Exámenes creados", value: exams.length, sub: "Total", color: "text-primary", shadow: "shadow-primary/10", borderHover: "hover:border-primary/30" },
+                        { label: "Estudiantes activos", value: "—", sub: "Ver en estudiantes", color: "text-success", shadow: "shadow-success/10", borderHover: "hover:border-success/30" },
+                        { label: "Exámenes abiertos", value: exams.filter(e => getExamStatus(e).label === "Abierto").length, sub: "En curso", color: "text-warning", shadow: "shadow-warning/10", borderHover: "hover:border-warning/30" },
+                    ].map((stat, i) => (
+                        <div
+                            key={i}
+                            className={`bg-card/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${stat.shadow} ${stat.borderHover} transition-all duration-300 ease-out group animate-in fade-in slide-in-from-bottom-4 fill-mode-both`}
+                            style={{ animationDelay: `${i * 100}ms` }}
+                        >
+                            <p className="text-xs font-medium text-muted-foreground mb-1 group-hover:text-foreground/80 transition-colors">{stat.label}</p>
+                            <p className={`text-4xl font-bold ${stat.color} tracking-tight group-hover:scale-105 origin-left transition-transform duration-300`}>{stat.value}</p>
+                            <p className="text-xs text-muted-foreground mt-2 opacity-80">{stat.sub}</p>
+                        </div>
+                    ))}
                 </div>
 
-                {/* Lista de exámenes creados */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5" />
-                            Exámenes Creados
-                        </CardTitle>
-                        <CardDescription>Lista de todos tus exámenes</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {errorExams && (
-                            <p className="mb-3 text-sm text-red-500">{errorExams}</p>
-                        )}
+                {/* Acciones rápidas */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                    {[
+                        {
+                            // cambiar action:
+                            icon: Plus, label: "Crear examen", sub: "Nuevo examen SQL",
+                            color: "text-primary", bg: "bg-primary/10",
+                            border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/preview/create-exam")
+                        },
+                        {
+                            icon: Users, label: "Ver estudiantes", sub: "Gestionar lista",
+                            color: "text-success", bg: "bg-success/10",
+                            border: "hover:border-success/50", hoverShadow: "hover:shadow-success/20", action: () => navigate("/preview/students")
+                        },
+                        {
+                            icon: Database, label: "Bases de datos", sub: "Administrar BD",
+                            color: "text-accent", bg: "bg-accent/10",
+                            border: "hover:border-accent/50", hoverShadow: "hover:shadow-accent/20", action: () => navigate("/preview/databases")
+                        },
+                    ].map((item, i) => (
+                        <div
+                            key={i}
+                            onClick={item.action}
+                            className={`bg-card/40 backdrop-blur-md border border-white/5 ${item.border} rounded-xl p-5 flex items-center gap-4 cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${item.hoverShadow} transition-all duration-300 ease-out group animate-in fade-in slide-in-from-bottom-4 fill-mode-both`}
+                            style={{ animationDelay: `${(i + 3) * 100}ms`, animationDuration: '500ms' }}
+                        >
+                            <div className={`w-12 h-12 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:shadow-inner transition-all duration-300`}>
+                                <item.icon className={`h-6 w-6 ${item.color} group-hover:animate-pulse`} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.label}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
 
-                        {loadingExams ? (
-                            <p className="text-sm text-muted-foreground">
-                                Cargando exámenes...
-                            </p>
-                        ) : exams.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Aún no has creado exámenes.
-                            </p>
-                        ) : (
-                            <div className="space-y-3">
-                                {exams.map((exam) => (
+                {/* Lista de exámenes */}
+                <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 bg-white/5">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                                <FileText className="h-4 w-4 text-primary" />
+                            </div>
+                            <span className="text-sm font-bold text-foreground">Exámenes creados</span>
+                        </div>
+                        <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50">
+                            {exams.length} examen{exams.length !== 1 ? "es" : ""}
+                        </span>
+                    </div>
+
+                    {errorExams && (
+                        <div className="px-6 py-4">
+                            <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">{errorExams}</p>
+                        </div>
+                    )}
+
+                    {loadingExams ? (
+                        <div className="px-6 py-12 text-center flex flex-col items-center justify-center space-y-3">
+                            <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                            <p className="text-sm text-muted-foreground animate-pulse">Cargando exámenes...</p>
+                        </div>
+                    ) : exams.length === 0 ? (
+                        <div className="px-6 py-16 text-center flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                            <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mb-4">
+                                <FileText className="h-8 w-8 text-muted-foreground/50 animate-bounce" style={{ animationDuration: '3s' }} />
+                            </div>
+                            <p className="text-base font-medium text-foreground mb-1">Aún no has creado exámenes</p>
+                            <p className="text-sm text-muted-foreground mb-4 max-w-sm">Comienza creando tu primer examen SQL para evaluar a tus estudiantes.</p>
+
+                            <Button
+                                onClick={() => navigate("/preview/create-exam")}
+                                className="group relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:scale-95"
+                            >
+                                <span className="relative z-10 flex items-center gap-2">
+                                    <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+                                    Crear primer examen
+                                </span>
+                            </Button>
+
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-white/5">
+                            {exams.map((exam, i) => {
+                                const status = getExamStatus(exam);
+                                return (
                                     <div
                                         key={exam.ExamID}
-                                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                                        className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.03] transition-all duration-300 group cursor-pointer animate-in fade-in slide-in-from-right-4 fill-mode-both"
+                                        style={{ animationDelay: `${i * 50}ms`, animationDuration: '400ms' }}
+                                        onClick={() => navigate(`/teacher/exams/${exam.ExamID}`, {
+                                            state: { examID: exam.ExamID }
+                                        })}
                                     >
-                                        {/* Información del examen */}
-                                        <div>
-                                            <h3 className="font-semibold text-foreground">
+                                        {/* Dot de estado */}
+                                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:scale-150 group-hover:shadow-md transition-all duration-300"
+                                            style={{ background: status.color, boxShadow: `0 0 8px ${status.color}80` }} />
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors duration-200">
                                                 {exam.Title}
-                                            </h3>
-                                            <p className="text-sm text-muted-foreground">
-                                                Inicio:{" "}
-                                                {exam.StartTime
-                                                    ? new Date(exam.StartTime).toLocaleString()
-                                                    : "—"}
-                                                {" • "}
-                                                Fin:{" "}
-                                                {exam.EndTime
-                                                    ? new Date(exam.EndTime).toLocaleString()
-                                                    : "—"}
                                             </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Estudiantes inscritos: {exam.students ?? 0}
-                                            </p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Clock className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary/70 transition-colors" />
+                                                <p className="text-xs text-muted-foreground">
+                                                    {exam.StartTime
+                                                        ? new Date(exam.StartTime).toLocaleString("es-CO", {
+                                                            day: "2-digit", month: "short",
+                                                            hour: "2-digit", minute: "2-digit"
+                                                        })
+                                                        : "Sin fecha"}
+                                                    <span className="mx-1.5 opacity-50">•</span>
+                                                    {exam.students ?? 0} estudiantes
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        {/* Acciones del examen */}
-                                        <div className="flex items-center gap-3">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    navigate(`/teacher/exams/${exam.ExamID}`, {
-                                                        state: { examID: exam.ExamID },
-                                                    })
-                                                }
-                                            >
-                                                Ver detalles
-                                            </Button>
-                                        </div>
+                                        {/* Badge estado */}
+                                        <span className="text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0 border border-white/5 group-hover:border-white/20 transition-colors"
+                                            style={{ color: status.color, background: status.bg }}>
+                                            {status.label}
+                                        </span>
+
+                                        {/* Botón */}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="flex-shrink-0 h-8 w-8 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all duration-200"
+                                        >
+                                            <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                                        </Button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -1,23 +1,79 @@
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/Components/ui/card";
-import { Database } from "lucide-react";
+import { Database, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
 
-const API_URL = import.meta.env.VITE_API_URL; // http://localhost:3000
+const API_URL = import.meta.env.VITE_API_URL;
 
-// Accept optional prop: noPermission
+// Fondo animado con blobs
+const AnimatedBackground = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Blob 1 — índigo */}
+        <div style={{
+            position: 'absolute', width: '700px', height: '700px',
+            borderRadius: '50%', filter: 'blur(60px)', opacity: 0.55,
+            background: 'radial-gradient(circle, #6366f1, transparent 70%)',
+            top: '-200px', left: '-150px',
+            animation: 'blob1 8s ease-in-out infinite',
+        }} />
+        {/* Blob 2 — violeta */}
+        <div style={{
+            position: 'absolute', width: '650px', height: '650px',
+            borderRadius: '50%', filter: 'blur(60px)', opacity: 0.5,
+            background: 'radial-gradient(circle, #a78bfa, transparent 70%)',
+            bottom: '-150px', right: '-100px',
+            animation: 'blob2 10s ease-in-out infinite',
+        }} />
+        {/* Blob 3 — cyan */}
+        <div style={{
+            position: 'absolute', width: '500px', height: '500px',
+            borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4,
+            background: 'radial-gradient(circle, #38bdf8, transparent 70%)',
+            top: '40%', left: '55%',
+            animation: 'blob3 12s ease-in-out infinite',
+        }} />
+        {/* Blob 4 — rosa/magenta */}
+        <div style={{
+            position: 'absolute', width: '450px', height: '450px',
+            borderRadius: '50%', filter: 'blur(55px)', opacity: 0.35,
+            background: 'radial-gradient(circle, #e879f9, transparent 70%)',
+            bottom: '15%', left: '5%',
+            animation: 'blob4 9s ease-in-out infinite',
+        }} />
+
+        <style>{`
+      @keyframes blob1 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(80px, 60px) scale(1.15); }
+        66% { transform: translate(-40px, 80px) scale(0.92); }
+      }
+      @keyframes blob2 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(-70px, -60px) scale(1.12); }
+        66% { transform: translate(60px, -80px) scale(0.9); }
+      }
+      @keyframes blob3 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(-60px, 70px) scale(1.18); }
+        66% { transform: translate(70px, -40px) scale(0.88); }
+      }
+      @keyframes blob4 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(80px, -70px) scale(1.15); }
+      }
+    `}</style>
+    </div>
+);
+
 const Login = ({ noPermission = false }) => {
-
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
@@ -25,42 +81,23 @@ const Login = ({ noPermission = false }) => {
         e.preventDefault();
         setErrorMsg("");
         setLoading(true);
-
         try {
             const res = await fetch(`${API_URL}/auth/login`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({
-                    email,
-                    password,
-                }),
+                body: JSON.stringify({ email, password }),
             });
-
             const data = await res.json().catch(() => ({}));
-            console.log("[Login] backend response:", data);
-
-            if (!res.ok) {
-                throw new Error(data.message || "Credenciales inválidas");
-            }
-
-            if (!data.accessToken) {
-                throw new Error("No se recibió accessToken del servidor.");
-            }
-
-            // Save token + user in context
+            if (!res.ok) throw new Error(data.message || "Credenciales inválidas");
+            if (!data.accessToken) throw new Error("No se recibió accessToken del servidor.");
             login(data.accessToken, data.user);
-
             const role = data.user?.Roles || null;
-
             if (role.includes(3)) navigate("/dashboard/student");
             else if (role.includes(2)) navigate("/dashboard/teacher");
             else if (role.includes(1)) navigate("/dashboard/admin");
             else navigate("/dashboard/student");
         } catch (err) {
-            console.error("[Login] error:", err);
             setErrorMsg(err.message || "Error inesperado");
         } finally {
             setLoading(false);
@@ -68,47 +105,83 @@ const Login = ({ noPermission = false }) => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="bg-primary/10 p-3 rounded-full">
-                            <Database className="h-8 w-8 text-primary" />
+        <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+
+            {/* Fondo animado */}
+            <AnimatedBackground />
+
+            {/* Card de login */}
+            <div className="relative z-10 w-full max-w-md">
+                <div style={{
+                    background: 'rgba(26, 29, 53, 0.7)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    borderRadius: '16px',
+                    padding: '40px 36px',
+                }}>
+
+                    {/* Ícono */}
+                    <div className="flex justify-center mb-6">
+                        <div style={{
+                            width: '52px', height: '52px',
+                            background: 'rgba(99, 102, 241, 0.15)',
+                            border: '1px solid rgba(99, 102, 241, 0.3)',
+                            borderRadius: '12px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <Lock className="h-6 w-6 text-primary" />
                         </div>
                     </div>
 
+                    {/* Título */}
+                    <h1 className="text-2xl font-bold text-foreground text-center mb-2">
+                        Iniciar Sesión
+                    </h1>
+                    <p className="text-sm text-muted-foreground text-center mb-8">
+                        Ingresa tus credenciales para acceder a QueryLogic
+                    </p>
+
+                    {/* Alerta no permiso */}
                     {noPermission && (
-                        <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left">
-                            <p className="text-xs text-amber-700">
+                        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
+                            <p className="text-xs text-warning">
                                 No tuviste permisos para acceder al recurso anterior.
                                 Ingresa con la cuenta adecuada para continuar.
                             </p>
                         </div>
                     )}
 
-                    <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-                    <CardDescription>
-                        Ingresa tus credenciales para acceder a SQLEvaluator
-                    </CardDescription>
-                </CardHeader>
-
-                <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-4">
-
+                    {/* Formulario */}
+                    <form onSubmit={handleLogin} className="space-y-5">
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Email
+                            </Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="tu@email.com"
+                                placeholder="tu@uninorte.edu.co"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                style={{
+                                    background: 'rgba(17, 19, 31, 0.8)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '8px',
+                                }}
+                                className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Contraseña</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Contraseña
+                                </Label>
+                                <button type="button" className="text-xs text-primary hover:underline">
+                                    ¿Olvidaste tu contraseña?
+                                </button>
+                            </div>
                             <Input
                                 id="password"
                                 type="password"
@@ -116,38 +189,86 @@ const Login = ({ noPermission = false }) => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                style={{
+                                    background: 'rgba(17, 19, 31, 0.8)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '8px',
+                                }}
+                                className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
                         </div>
 
                         {errorMsg && (
-                            <p className="text-red-500 text-sm">{errorMsg}</p>
+                            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
+                                <p className="text-xs text-destructive">{errorMsg}</p>
+                            </div>
                         )}
 
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button
+                            type="submit"
+                            className="w-full mt-2"
+                            disabled={loading}
+                            style={{ boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)' }}
+                        >
                             {loading ? "Ingresando..." : "Ingresar"}
                         </Button>
                     </form>
 
-                    <div className="mt-6 text-center space-y-4">
+                    {/* Divider */}
+                    <div className="flex items-center gap-3 my-6">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs text-muted-foreground">O continúa con</span>
+                        <div className="flex-1 h-px bg-border" />
+                    </div>
+
+                    {/* Botón Roble */}
+                    <button
+                        onClick={() => navigate("/dashboard/student")}
+                        className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground hover:text-foreground"
+                    >
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        Iniciar sesión con Roble
+                    </button>
+
+                    {/* SOLO PARA PRUEBAS VISUALES - quitar después */}
+                    <div className="mt-4 pt-4 border-t border-border">
+                        <p className="text-xs text-muted-foreground text-center mb-3">Acceso rápido para pruebas</p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => navigate("/preview/teacher")}
+                                className="flex-1 py-2 text-xs rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-all"
+                            >
+                                Ver Dashboard Profesor
+                            </button>
+                            <button
+                                onClick={() => navigate("/preview/student")}
+                                className="flex-1 py-2 text-xs rounded-lg border border-success/30 text-success hover:bg-success/10 transition-all"
+                            >
+                                Ver Dashboard Estudiante
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Links */}
+                    <div className="mt-6 text-center space-y-3">
                         <p className="text-sm text-muted-foreground">
                             ¿No tienes cuenta?{" "}
                             <button
                                 onClick={() => navigate("/register")}
-                                className="text-primary hover:underline font-medium"
+                                className="text-primary hover:underline font-semibold"
                             >
                                 Regístrate aquí
                             </button>
                         </p>
-
                         <button
                             onClick={() => navigate("/")}
-                            className="text-sm text-muted-foreground hover:text-foreground"
+                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                         >
                             ← Volver al inicio
                         </button>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 };

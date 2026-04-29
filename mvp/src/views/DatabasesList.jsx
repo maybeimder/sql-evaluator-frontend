@@ -1,21 +1,6 @@
-// Import UI components and utilities
 import { useRef, useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    Database,
-    ArrowLeft,
-    Plus,
-    Trash2,
-    Download,
-    Upload,
-} from "lucide-react";
+import { Button } from "@/Components/ui/button";
+import { Database, ArrowLeft, Plus, Trash2, Download, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
@@ -24,52 +9,32 @@ const API_URL = import.meta.env.VITE_API_URL;
 const DatabasesList = () => {
     const { accessToken } = useAuth();
     const navigate = useNavigate();
-
     const [databases, setDatabases] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-
-    // Hidden file inputs refs
     const newDbFileInputRef = useRef(null);
     const importSqlFileInputRef = useRef(null);
 
-    // Fetch databases from backend
     const fetchDatabases = async () => {
-        if (!accessToken) {
-            navigate("/login");
-            return;
-        }
-
+        //if (!accessToken) { navigate("/login"); return; }
         try {
             setIsLoading(true);
-
             const res = await fetch(`${API_URL}/databases`, {
                 method: "GET",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
+                headers: { Authorization: `Bearer ${accessToken}` },
                 credentials: "include",
             });
-
             const data = await res.json();
-
-            if (!data.ok || !Array.isArray(data.databases)) {
-                console.error("Error fetching databases:", data);
-                return;
-            }
-
-            const mapped = data.databases.map((db) => ({
-                // Use DatabaseID as stable identifier for frontend actions
+            if (!data.ok || !Array.isArray(data.databases)) return;
+            setDatabases(data.databases.map(db => ({
                 id: db.DatabaseID,
                 backendId: db._id,
                 name: db.Name,
-                description: db.Description || "No description provided",
+                description: db.Description || "Sin descripción",
                 tables: typeof db.Tables === "number" ? db.Tables : 0,
                 sizeBytes: typeof db.Size === "number" ? db.Size : 0,
                 createdAt: db.UploadedAt || new Date().toISOString(),
                 dumpFilePath: db.DumpFilePath,
-            }));
-
-            setDatabases(mapped);
+            })));
         } catch (err) {
             console.error("Error fetching databases:", err);
         } finally {
@@ -77,340 +42,208 @@ const DatabasesList = () => {
         }
     };
 
-    // Initial load
-    useEffect(() => {
-        fetchDatabases();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [accessToken]);
+    useEffect(() => { fetchDatabases(); }, [accessToken]);
 
-    // 👉 New Database: open file picker (.bak / .sql)
-    const handleNewDatabaseClick = () => {
-        if (newDbFileInputRef.current) {
-            newDbFileInputRef.current.click();
-        }
-    };
-
-    // When the user selects a file for "New Database"
     const handleNewDatabaseFileChange = async (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
-
-        if (!accessToken) {
-            alert("Your session has expired. Please log in again.");
-            navigate("/login");
-            return;
-        }
-
+        if (!accessToken) { navigate("/login"); return; }
         const formData = new FormData();
         formData.append("file", file);
-
         try {
             const res = await fetch(`${API_URL}/postgres/restore`, {
                 method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
+                headers: { Authorization: `Bearer ${accessToken}` },
                 body: formData,
                 credentials: "include",
             });
-
             const data = await res.json();
-
-            if (!data.ok) {
-                alert("Error restoring database: " + (data.error || data.message));
-            } else {
-                alert("Database created: " + data.database);
-                console.log("BACKEND RESULT", data);
-                // Reload databases from backend so UI reflects real data
-                await fetchDatabases();
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error sending file to backend");
-        }
-
+            if (!data.ok) alert("Error: " + (data.error || data.message));
+            else { await fetchDatabases(); }
+        } catch (err) { console.error(err); }
         event.target.value = "";
     };
 
-    // 👉 Import SQL: open file picker (.sql)
-    const handleImportSqlClick = () => {
-        if (importSqlFileInputRef.current) {
-            importSqlFileInputRef.current.click();
-        }
-    };
-
-    // When the user selects a SQL file to import
     const handleImportSqlFileChange = async (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
-
-        if (!file.name.endsWith(".sql")) {
-            alert("Only .sql files are allowed");
-            return;
-        }
-
-        if (!accessToken) {
-            alert("Your session has expired. Please log in again.");
-            navigate("/login");
-            return;
-        }
-
+        if (!file.name.endsWith(".sql")) { alert("Solo archivos .sql"); return; }
+        if (!accessToken) { navigate("/login"); return; }
         const formData = new FormData();
         formData.append("file", file);
-
         try {
             const res = await fetch(`${API_URL}/postgres/restore`, {
                 method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
+                headers: { Authorization: `Bearer ${accessToken}` },
                 credentials: "include",
                 body: formData,
             });
-
             const data = await res.json();
-
-            if (!data.ok) {
-                alert("Error importing SQL: " + (data.error || data.message));
-            } else {
-                alert(`SQL imported into database: ${data.database}`);
-                // Reload databases after import
-                await fetchDatabases();
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error sending SQL to backend");
-        }
-
+            if (!data.ok) alert("Error: " + (data.error || data.message));
+            else { await fetchDatabases(); }
+        } catch (err) { console.error(err); }
         event.target.value = "";
     };
 
-    // 👉 Export: still mocked (backend export endpoint can be wired later)
-    const handleExportDatabase = (db) => {
-        alert(`Simulating export of database "${db.name}".`);
-        console.log("Export DB (mock):", db);
-    };
-
-    // 👉 Delete: call backend and then update state
     const handleDeleteDatabase = async (db) => {
-        const confirmed = window.confirm(
-            `Are you sure you want to delete the database "${db.name}"? This action cannot be undone.`
-        );
-        if (!confirmed) return;
-
-        if (!accessToken) {
-            alert("Your session has expired. Please log in again.");
-            navigate("/login");
-            return;
-        }
-
+        if (!window.confirm(`¿Eliminar la base de datos "${db.name}"? Esta acción no se puede deshacer.`)) return;
+        //if (!accessToken) { navigate("/login"); return; }
         try {
-            const res = await fetch(
-                `${API_URL}/databases/delete/${encodeURIComponent(db.id)}`, // <-- :databaseID
-                {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                }
-            );
-
+            const res = await fetch(`${API_URL}/databases/delete/${encodeURIComponent(db.id)}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+                credentials: "include",
+            });
             const data = await res.json();
-
-            if (!data.ok) {
-                alert(
-                    "Error deleting database: " + (data.error || data.message || "")
-                );
-                return;
-            }
-
-            // Remove from local state
-            setDatabases((prev) => prev.filter((item) => item.id !== db.id));
-        } catch (err) {
-            console.error("Error deleting database:", err);
-            alert("Error deleting database");
-        }
+            if (!data.ok) alert("Error: " + (data.error || data.message));
+            else setDatabases(prev => prev.filter(item => item.id !== db.id));
+        } catch (err) { console.error(err); }
     };
 
-    const formatTables = (tables) => {
-        if (!tables || tables === 0) return "Desconocido";
-        return `${tables} tablas`;
-    };
-
-    const formatSize = (sizeBytes) => {
-        if (!sizeBytes || sizeBytes === 0) return "Desconocido";
-        const mb = sizeBytes / (1024 * 1024);
-        return `${mb.toFixed(2)} MB`;
-    };
+    const formatTables = (t) => (!t || t === 0) ? "Desconocido" : `${t} tablas`;
+    const formatSize = (b) => (!b || b === 0) ? "Desconocido" : `${(b / (1024 * 1024)).toFixed(2)} MB`;
 
     return (
         <div className="min-h-screen bg-background">
-            {/* App header */}
-            <header className="border-b border-border bg-card">
-                <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                    {/* Logo and app name */}
+
+            {/* Navbar */}
+            <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+                <div className="container mx-auto px-8 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Database className="h-8 w-8 text-primary" />
-                        <span className="text-2xl font-bold text-foreground">
-                            SQLEvaluator
-                        </span>
+                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <Database className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-lg font-bold text-foreground">QueryLogic</span>
                     </div>
-                    {/* Back to dashboard button */}
                     <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate("/dashboard/teacher")}
+                        variant="ghost" size="sm"
+                        onClick={() => navigate("/preview/teacher")}
+                        className="gap-2 text-muted-foreground hover:text-foreground"
                     >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        <ArrowLeft className="h-4 w-4" />
                         Volver al Dashboard
                     </Button>
                 </div>
             </header>
 
-            <div className="container mx-auto px-4 py-8">
-                {/* Title and description */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-foreground mb-2">
-                        Bases de Datos
-                    </h1>
-                    <p className="text-muted-foreground">
+            <div className="container mx-auto px-8 py-8">
+
+                {/* Título */}
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-foreground">Bases de Datos</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
                         Administra las bases de datos disponibles para tus exámenes
                     </p>
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex gap-4 mb-6">
-                    <Button onClick={handleNewDatabaseClick}>
-                        <Plus className="h-4 w-4 mr-2" />
+                {/* Botones de acción */}
+                <div className="flex gap-3 mb-6">
+                    <Button
+                        onClick={() => newDbFileInputRef.current?.click()}
+                        className="gap-2"
+                        style={{ boxShadow: '0 0 15px rgba(99,102,241,0.25)' }}
+                    >
+                        <Plus className="h-4 w-4" />
                         Nueva Base de Datos
                     </Button>
-
-                    <Button variant="outline" onClick={handleImportSqlClick}>
-                        <Upload className="h-4 w-4 mr-2" />
+                    <Button
+                        variant="outline"
+                        onClick={() => importSqlFileInputRef.current?.click()}
+                        className="gap-2 border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
+                    >
+                        <Upload className="h-4 w-4" />
                         Importar SQL
                     </Button>
-
-                    {/* Hidden file inputs */}
-                    <input
-                        ref={newDbFileInputRef}
-                        type="file"
-                        accept=".bak,.sql"
-                        className="hidden"
-                        onChange={handleNewDatabaseFileChange}
-                    />
-                    <input
-                        ref={importSqlFileInputRef}
-                        type="file"
-                        accept=".sql"
-                        className="hidden"
-                        onChange={handleImportSqlFileChange}
-                    />
+                    <input ref={newDbFileInputRef} type="file" accept=".bak,.sql" className="hidden" onChange={handleNewDatabaseFileChange} />
+                    <input ref={importSqlFileInputRef} type="file" accept=".sql" className="hidden" onChange={handleImportSqlFileChange} />
                 </div>
 
                 {isLoading && (
-                    <p className="text-muted-foreground mb-4">
-                        Cargando bases de datos...
-                    </p>
+                    <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground">Cargando bases de datos...</p>
+                    </div>
                 )}
 
-                {/* Databases grid */}
-                <div className="grid md:grid-cols-2 gap-6">
-                    {databases.map((db) => (
-                        <Card key={db.id} className="hover:border-primary transition-colors">
-                            <CardHeader>
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-primary/10 rounded-lg">
-                                            <Database className="h-6 w-6 text-primary" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-xl">{db.name}</CardTitle>
-                                            <CardDescription className="mt-1">
-                                                {db.description}
-                                            </CardDescription>
-                                        </div>
+                {/* Grid de bases de datos */}
+                {!isLoading && databases.length > 0 && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {databases.map(db => (
+                            <div
+                                key={db.id}
+                                className="bg-card border border-border hover:border-primary/50 rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5"
+                            >
+                                {/* Header de la card */}
+                                <div className="flex items-start gap-3 mb-4">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Database className="h-5 w-5 text-primary" />
                                     </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {/* Detailed database info */}
-                                <div className="space-y-3 mb-4">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">Tablas:</span>
-                                        <span className="font-medium text-foreground">
-                                            {formatTables(db.tables)}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">Tamaño:</span>
-                                        <span className="font-medium text-foreground">
-                                            {formatSize(db.sizeBytes)}
-                                        </span>
-                                    </div>
-                                    {/* Exams is not provided by backend yet, so we can omit or use 0 */}
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">Usada en:</span>
-                                        <span className="font-medium text-foreground">
-                                            0 exámenes
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">Creada:</span>
-                                        <span className="font-medium text-foreground">
-                                            {new Date(db.createdAt).toLocaleDateString("es-ES", {
-                                                year: "numeric",
-                                                month: "long",
-                                                day: "numeric",
-                                            })}
-                                        </span>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-foreground">{db.name}</h3>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{db.description}</p>
                                     </div>
                                 </div>
 
-                                {/* Action buttons per database */}
-                                <div className="flex gap-2 pt-4 border-t border-border">
+                                {/* Info */}
+                                <div className="space-y-2 mb-4 p-3 rounded-lg" style={{ background: 'rgba(17,19,31,0.5)' }}>
+                                    {[
+                                        { label: "Tablas", value: formatTables(db.tables) },
+                                        { label: "Tamaño", value: formatSize(db.sizeBytes) },
+                                        { label: "Usada en", value: "0 exámenes" },
+                                        { label: "Creada", value: new Date(db.createdAt).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }) },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex items-center justify-between">
+                                            <span className="text-xs text-muted-foreground">{item.label}</span>
+                                            <span className="text-xs font-semibold text-foreground">{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Acciones */}
+                                <div className="flex gap-2 pt-3 border-t border-border">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="flex-1"
-                                        onClick={() => handleExportDatabase(db)}
+                                        className="flex-1 gap-2 text-xs border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
+                                        onClick={() => alert(`Exportando ${db.name}...`)}
                                     >
-                                        <Download className="h-4 w-4 mr-2" />
+                                        <Download className="h-3.5 w-3.5" />
                                         Exportar
                                     </Button>
-
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleDeleteDatabase(db)}
+                                        className="hover:bg-destructive/10"
                                     >
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Empty state */}
                 {!isLoading && databases.length === 0 && (
-                    <Card className="mt-8">
-                        <CardContent className="text-center py-12">
-                            <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-foreground mb-2">
-                                No hay bases de datos creadas
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
-                                Crea o importa una base de datos para comenzar a diseñar tus
-                                exámenes
-                            </p>
-                            <Button onClick={handleNewDatabaseClick}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Crear Primera Base de Datos
-                            </Button>
-                        </CardContent>
-                    </Card>
+                    <div className="bg-card border border-border rounded-xl p-12 text-center">
+                        <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <Database className="h-7 w-7 text-primary/50" />
+                        </div>
+                        <h3 className="text-base font-semibold text-foreground mb-2">
+                            No hay bases de datos creadas
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                            Crea o importa una base de datos para comenzar a diseñar tus exámenes
+                        </p>
+                        <Button
+                            onClick={() => newDbFileInputRef.current?.click()}
+                            className="gap-2"
+                            style={{ boxShadow: '0 0 15px rgba(99,102,241,0.25)' }}
+                        >
+                            <Plus className="h-4 w-4" />
+                            Crear Primera Base de Datos
+                        </Button>
+                    </div>
                 )}
             </div>
         </div>

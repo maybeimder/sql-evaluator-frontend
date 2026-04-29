@@ -30,6 +30,15 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+
+            {/* RUTAS TEMPORALES PARA PRUEBAS - quitar después */}
+            <Route path="/preview/teacher" element={<DashboardTeacher />} />
+            <Route path="/preview/student" element={<DashboardStudent />} />
+            <Route path="/preview/create-exam" element={<CreateExam />} />
+            <Route path="/preview/students" element={<StudentsList />} />
+            <Route path="/preview/databases" element={<DatabasesList />} />
+            <Route path="/preview/student/:id" element={<StudentDetail />} />
+
             <Route path="/verify" element={<VerifyCode />} />
             <Route path="/login/no-permission" element={<Login noPermission={true} />} />
 
@@ -43,7 +52,7 @@ function App() {
             <Route path="/teacher/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherDetail /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/exam/create" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <CreateExam /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/exam/take" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamEvaluator /> </RoleRoute> </ProtectedRoute>} />
-            
+
             <Route path="/exams/:id" element={<ExamDetailStudent />} />
             <Route path="/teacher/exams/:id" element={<TeacherExamDetail />} />
             <Route path="/teacher/exams/:examId/students/:studentId" element={<TeacherExamStudentDetail />} />
