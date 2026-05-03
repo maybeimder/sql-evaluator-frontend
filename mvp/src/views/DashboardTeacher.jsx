@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/Components/ui/button";
-import { Database, FileText, Users, Plus, LogOut, Clock, ChevronRight } from "lucide-react";
+import { Database, Eye, FileText, Users, Plus, LogOut, Clock, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
+import { motion } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -59,12 +60,28 @@ const DashboardTeacher = () => {
         ? user.FullName.split(" ").map(w => w[0]).slice(0, 2).join("")
         : "P";
 
+    // Variantes de Framer Motion
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    };
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background text-foreground">
 
             {/* Navbar */}
             <header className="border-b border-white/10 bg-card/60 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
-                <div className="container mx-auto px-8 py-3 flex items-center justify-between">
+                <div className="container mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2 group cursor-pointer">
                         <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 group-hover:shadow-primary/40 transition-all duration-300">
                             <Database className="h-4 w-4 text-white group-hover:rotate-12 transition-transform duration-300" />
@@ -72,7 +89,7 @@ const DashboardTeacher = () => {
                         <span className="text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300">QueryLogic</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-muted-foreground hidden sm:inline-block">
                             Prof. <span className="font-medium text-foreground">{user?.FullName || "—"}</span>
                         </span>
                         <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary hover:scale-105 hover:bg-primary/20 transition-all duration-300 cursor-default">
@@ -81,49 +98,67 @@ const DashboardTeacher = () => {
                         <Button variant="ghost" size="sm" onClick={logout_function}
                             className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2 active:scale-95 transition-all duration-200">
                             <LogOut className="h-4 w-4" />
-                            Salir
+                            <span className="hidden sm:inline">Salir</span>
                         </Button>
                     </div>
                 </div>
             </header>
 
-            <div className="container mx-auto px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="container mx-auto px-4 sm:px-8 py-8">
 
                 {/* Título */}
-                <div className="mb-8">
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="mb-8"
+                >
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">Panel del Profesor</h1>
                     <p className="text-sm text-muted-foreground mt-2">
                         Gestiona tus exámenes, estudiantes y bases de datos
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <motion.div 
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"
+                >
                     {[
                         { label: "Exámenes creados", value: exams.length, sub: "Total", color: "text-primary", shadow: "shadow-primary/10", borderHover: "hover:border-primary/30" },
                         { label: "Estudiantes activos", value: "—", sub: "Ver en estudiantes", color: "text-success", shadow: "shadow-success/10", borderHover: "hover:border-success/30" },
                         { label: "Exámenes abiertos", value: exams.filter(e => getExamStatus(e).label === "Abierto").length, sub: "En curso", color: "text-warning", shadow: "shadow-warning/10", borderHover: "hover:border-warning/30" },
                     ].map((stat, i) => (
-                        <div
-                            key={i}
-                            className={`bg-card/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${stat.shadow} ${stat.borderHover} transition-all duration-300 ease-out group animate-in fade-in slide-in-from-bottom-4 fill-mode-both`}
-                            style={{ animationDelay: `${i * 100}ms` }}
-                        >
-                            <p className="text-xs font-medium text-muted-foreground mb-1 group-hover:text-foreground/80 transition-colors">{stat.label}</p>
-                            <p className={`text-4xl font-bold ${stat.color} tracking-tight group-hover:scale-105 origin-left transition-transform duration-300`}>{stat.value}</p>
-                            <p className="text-xs text-muted-foreground mt-2 opacity-80">{stat.sub}</p>
-                        </div>
+                        <motion.div variants={itemVariants} key={i} className="h-full">
+                            <div className={`h-full bg-card/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${stat.shadow} ${stat.borderHover} transition-all duration-300 ease-out group relative overflow-hidden`}>
+                                <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-xl transition-colors duration-500 opacity-0 group-hover:opacity-10 bg-current ${stat.color}`}></div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 group-hover:text-foreground/80 transition-colors">{stat.label}</p>
+                                <p className={`text-4xl font-bold ${stat.color} tracking-tight group-hover:scale-105 origin-left transition-transform duration-300`}>{stat.value}</p>
+                                <p className="text-xs text-muted-foreground mt-2 opacity-80">{stat.sub}</p>
+                            </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
 
                 {/* Acciones rápidas */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <motion.div 
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"
+                >
                     {[
                         {
-                            // cambiar action:
                             icon: Plus, label: "Crear examen", sub: "Nuevo examen SQL",
                             color: "text-primary", bg: "bg-primary/10",
                             border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/preview/create-exam")
+                        },
+                        { //BORRAR DESPUÉS, SOLO PARA PRUEBAS
+                            icon: Eye, label: "Ver detalles", sub: "Detalles del examen",
+                            color: "text-primary", bg: "bg-primary/10",
+                            border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/preview/teacher-exam-detail")
                         },
                         {
                             icon: Users, label: "Ver estudiantes", sub: "Gestionar lista",
@@ -136,26 +171,31 @@ const DashboardTeacher = () => {
                             border: "hover:border-accent/50", hoverShadow: "hover:shadow-accent/20", action: () => navigate("/preview/databases")
                         },
                     ].map((item, i) => (
-                        <div
-                            key={i}
-                            onClick={item.action}
-                            className={`bg-card/40 backdrop-blur-md border border-white/5 ${item.border} rounded-xl p-5 flex items-center gap-4 cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${item.hoverShadow} transition-all duration-300 ease-out group animate-in fade-in slide-in-from-bottom-4 fill-mode-both`}
-                            style={{ animationDelay: `${(i + 3) * 100}ms`, animationDuration: '500ms' }}
-                        >
-                            <div className={`w-12 h-12 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:shadow-inner transition-all duration-300`}>
-                                <item.icon className={`h-6 w-6 ${item.color} group-hover:animate-pulse`} />
+                        <motion.div variants={itemVariants} key={i}>
+                            <div
+                                onClick={item.action}
+                                className={`h-full bg-card/40 backdrop-blur-md border border-white/5 ${item.border} rounded-xl p-5 flex items-center gap-4 cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${item.hoverShadow} transition-all duration-300 ease-out group`}
+                            >
+                                <div className={`w-12 h-12 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:shadow-inner transition-all duration-300`}>
+                                    <item.icon className={`h-6 w-6 ${item.color} group-hover:animate-pulse`} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.label}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.label}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
-                            </div>
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
 
                 {/* Lista de exámenes */}
-                <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 bg-white/5">
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                    className="bg-card/40 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300"
+                >
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 bg-white/[0.02]">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-primary/10 rounded-lg">
                                 <FileText className="h-4 w-4 text-primary" />
@@ -179,7 +219,11 @@ const DashboardTeacher = () => {
                             <p className="text-sm text-muted-foreground animate-pulse">Cargando exámenes...</p>
                         </div>
                     ) : exams.length === 0 ? (
-                        <div className="px-6 py-16 text-center flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="px-6 py-16 text-center flex flex-col items-center justify-center"
+                        >
                             <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mb-4">
                                 <FileText className="h-8 w-8 text-muted-foreground/50 animate-bounce" style={{ animationDuration: '3s' }} />
                             </div>
@@ -196,64 +240,73 @@ const DashboardTeacher = () => {
                                 </span>
                             </Button>
 
-                        </div>
+                        </motion.div>
                     ) : (
-                        <div className="divide-y divide-white/5">
+                        <motion.div 
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="show"
+                            className="divide-y divide-white/5"
+                        >
                             {exams.map((exam, i) => {
                                 const status = getExamStatus(exam);
                                 return (
-                                    <div
+                                    <motion.div
+                                        variants={itemVariants}
                                         key={exam.ExamID}
-                                        className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.03] transition-all duration-300 group cursor-pointer animate-in fade-in slide-in-from-right-4 fill-mode-both"
-                                        style={{ animationDelay: `${i * 50}ms`, animationDuration: '400ms' }}
+                                        className="flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-4 hover:bg-white/[0.03] transition-all duration-300 group cursor-pointer"
                                         onClick={() => navigate(`/teacher/exams/${exam.ExamID}`, {
                                             state: { examID: exam.ExamID }
                                         })}
                                     >
-                                        {/* Dot de estado */}
-                                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:scale-150 group-hover:shadow-md transition-all duration-300"
-                                            style={{ background: status.color, boxShadow: `0 0 8px ${status.color}80` }} />
+                                        <div className="flex items-center flex-1 gap-4 min-w-0">
+                                            {/* Dot de estado */}
+                                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:scale-150 group-hover:shadow-md transition-all duration-300"
+                                                style={{ background: status.color, boxShadow: `0 0 8px ${status.color}80` }} />
 
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors duration-200">
-                                                {exam.Title}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Clock className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary/70 transition-colors" />
-                                                <p className="text-xs text-muted-foreground">
-                                                    {exam.StartTime
-                                                        ? new Date(exam.StartTime).toLocaleString("es-CO", {
-                                                            day: "2-digit", month: "short",
-                                                            hour: "2-digit", minute: "2-digit"
-                                                        })
-                                                        : "Sin fecha"}
-                                                    <span className="mx-1.5 opacity-50">•</span>
-                                                    {exam.students ?? 0} estudiantes
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors duration-200">
+                                                    {exam.Title}
                                                 </p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Clock className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary/70 transition-colors" />
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {exam.StartTime
+                                                            ? new Date(exam.StartTime).toLocaleString("es-CO", {
+                                                                day: "2-digit", month: "short",
+                                                                hour: "2-digit", minute: "2-digit"
+                                                            })
+                                                            : "Sin fecha"}
+                                                        <span className="mx-1.5 opacity-50 hidden sm:inline">•</span>
+                                                        <span className="block sm:inline mt-1 sm:mt-0">{exam.students ?? 0} estudiantes</span>
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Badge estado */}
-                                        <span className="text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0 border border-white/5 group-hover:border-white/20 transition-colors"
-                                            style={{ color: status.color, background: status.bg }}>
-                                            {status.label}
-                                        </span>
+                                        <div className="flex items-center justify-between sm:justify-end gap-4 mt-2 sm:mt-0 w-full sm:w-auto pl-6 sm:pl-0">
+                                            {/* Badge estado */}
+                                            <span className="text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0 border border-white/5 group-hover:border-white/20 transition-colors uppercase tracking-wider"
+                                                style={{ color: status.color, background: status.bg }}>
+                                                {status.label}
+                                            </span>
 
-                                        {/* Botón */}
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="flex-shrink-0 h-8 w-8 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all duration-200"
-                                        >
-                                            <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
-                                        </Button>
-                                    </div>
+                                            {/* Botón */}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="flex-shrink-0 h-8 w-8 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all duration-200 active:scale-95"
+                                            >
+                                                <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                                            </Button>
+                                        </div>
+                                    </motion.div>
                                 );
                             })}
-                        </div>
+                        </motion.div>
                     )}
-                </div>
+                </motion.div>
             </div>
         </div>
     );

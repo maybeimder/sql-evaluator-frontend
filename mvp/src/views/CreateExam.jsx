@@ -2,10 +2,11 @@ import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Textarea } from "@/Components/ui/textarea";
-import { Database, Plus, Trash2, Save, X, Clock, FileText } from "lucide-react";
+import { Database, Plus, Trash2, Save, X, Clock, FileText, Settings, LayoutList, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -29,7 +30,8 @@ const CreateExam = () => {
 
     const addQuestion = () => {
         setQuestions(prev => [...prev, {
-            id: prev.length + 1, title: "", description: "",
+            id: Date.now(), // ID único para AnimatePresence
+            title: "", description: "",
             solutionExample: "", expectedOutput: "", points: 10,
         }]);
     };
@@ -109,24 +111,38 @@ const CreateExam = () => {
 
     const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
 
+    // Animations
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    };
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background pb-16">
 
             {/* Navbar */}
-            <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-                <div className="container mx-auto px-8 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                            <Database className="h-4 w-4 text-white" />
+            <header className="border-b border-white/10 bg-card/60 backdrop-blur-md sticky top-0 z-50 transition-all duration-300 shadow-sm">
+                <div className="container mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 group cursor-pointer">
+                        <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-all duration-300">
+                            <Database className="h-4 w-4 text-white group-hover:rotate-12 transition-transform" />
                         </div>
-                        <span className="text-lg font-bold text-foreground">QueryLogic</span>
+                        <span className="text-lg font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">QueryLogic</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => navigate("/dashboard/teacher")}
-                            className="gap-2 border-border text-muted-foreground hover:text-foreground"
+                            className="gap-2 text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 hidden sm:flex"
                         >
                             <X className="h-4 w-4" />
                             Cancelar
@@ -135,282 +151,368 @@ const CreateExam = () => {
                             size="sm"
                             onClick={handleSaveExam}
                             disabled={saving}
-                            className="gap-2"
-                            style={{ boxShadow: '0 0 15px rgba(99,102,241,0.3)' }}
+                            className="gap-2 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
                         >
                             <Save className="h-4 w-4" />
-                            {saving ? "Guardando..." : "Guardar examen"}
+                            {saving ? "Guardando..." : "Guardar Examen"}
                         </Button>
                     </div>
                 </div>
             </header>
 
-            <div className="container mx-auto px-8 py-8">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-foreground">Crear Nuevo Examen</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Define las preguntas y configuración del examen SQL
-                    </p>
-                </div>
+            <div className="container mx-auto px-4 sm:px-8 py-10">
+                <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="mb-8"
+                >
+                    <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Crear Nuevo Examen</motion.h1>
+                    <motion.p variants={itemVariants} className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+                        Define las preguntas, la configuración de tiempo y la base de datos a usar. Construye tu evaluación de manera secuencial y estructurada.
+                    </motion.p>
+                </motion.div>
 
                 {errorMsg && (
-                    <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
-                        <p className="text-sm text-destructive">{errorMsg}</p>
-                    </div>
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 rounded-xl border border-destructive/30 bg-destructive/10 px-5 py-4 shadow-sm flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                            <X className="h-4 w-4 text-destructive" />
+                        </div>
+                        <p className="text-sm font-medium text-destructive">{errorMsg}</p>
+                    </motion.div>
                 )}
 
                 {/* Layout 2 columnas */}
-                <div className="grid grid-cols-[1fr_300px] gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8">
 
-                    {/* Columna izquierda */}
-                    <div className="space-y-5">
+                    {/* Columna izquierda (Contenido principal) */}
+                    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
 
-                        {/* Info del examen */}
-                        <div className="bg-card border border-border rounded-xl p-6">
-                            <h2 className="text-sm font-semibold text-foreground mb-1">Información del examen</h2>
-                            <p className="text-xs text-muted-foreground mb-5">Datos generales y configuración de tiempo</p>
+                        {/* Configuración General */}
+                        <motion.div variants={itemVariants} className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
-                            <div className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                        Título del examen
+                            <div className="flex items-center gap-3 mb-6 relative z-10">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                                    <Settings className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-foreground">Configuración General</h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Metadatos y restricciones de tiempo</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6 relative z-10">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                                        Título del Examen
                                     </Label>
                                     <Input
-                                        placeholder="ej: SQL Básico — Consultas SELECT"
+                                        placeholder="ej: SQL Básico — Consultas SELECT y WHERE"
                                         value={examTitle}
                                         onChange={e => setExamTitle(e.target.value)}
-                                        style={{ background: 'rgba(17,19,31,0.8)', border: '1px solid rgba(99,102,241,0.2)' }}
+                                        className="h-11 bg-black/20 border-white/10 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl"
                                     />
                                 </div>
 
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                        Descripción
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                                        Descripción / Instrucciones
                                     </Label>
                                     <Textarea
-                                        placeholder="Breve descripción del examen..."
+                                        placeholder="Provee una breve descripción o instrucciones iniciales para los estudiantes..."
                                         rows={3}
                                         value={examDescription}
                                         onChange={e => setExamDescription(e.target.value)}
-                                        style={{ background: 'rgba(17,19,31,0.8)', border: '1px solid rgba(99,102,241,0.2)' }}
+                                        className="resize-none bg-black/20 border-white/10 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl p-3"
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 bg-black/10 p-5 rounded-2xl border border-white/5">
                                     {[
                                         { label: "Fecha de inicio", id: "date", type: "date", value: deadlineDate, setter: setDeadlineDate },
                                         { label: "Hora de inicio", id: "time", type: "time", value: deadlineTime, setter: setDeadlineTime },
                                         { label: "Duración (min)", id: "dur", type: "number", value: durationMinutes, setter: setDurationMinutes },
                                     ].map(field => (
-                                        <div key={field.id} className="space-y-1.5">
-                                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                        <div key={field.id} className="space-y-2">
+                                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
                                                 {field.label}
                                             </Label>
                                             <Input
                                                 type={field.type}
                                                 value={field.value}
                                                 onChange={e => field.setter(e.target.value)}
-                                                style={{ background: 'rgba(17,19,31,0.8)', border: '1px solid rgba(99,102,241,0.2)' }}
+                                                className="h-10 bg-black/20 border-white/10 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-lg text-sm"
                                             />
                                         </div>
                                     ))}
                                 </div>
 
-                                <div className="flex items-center gap-2 pt-1">
-                                    <input
-                                        id="allowsRejoin"
-                                        type="checkbox"
-                                        className="h-4 w-4 accent-indigo-500"
-                                        checked={allowsRejoin}
-                                        onChange={e => setAllowsRejoin(e.target.checked)}
-                                    />
-                                    <Label htmlFor="allowsRejoin" className="text-sm text-muted-foreground cursor-pointer">
-                                        Permitir reingresar al examen
+                                <div className="flex items-center gap-3 pt-2 pl-2">
+                                    <div className="relative flex items-center">
+                                        <input
+                                            id="allowsRejoin"
+                                            type="checkbox"
+                                            className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-white/20 bg-black/20 transition-all checked:border-primary checked:bg-primary hover:border-primary/50"
+                                            checked={allowsRejoin}
+                                            onChange={e => setAllowsRejoin(e.target.checked)}
+                                        />
+                                        <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 transition-opacity">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" strokeWidth="1">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <Label htmlFor="allowsRejoin" className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">
+                                        Permitir a los estudiantes reingresar al examen tras salir
                                     </Label>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
 
-                        {/* Preguntas */}
-                        <div className="bg-card border border-border rounded-xl p-6">
-                            <div className="flex items-center justify-between mb-5">
-                                <div>
-                                    <h2 className="text-sm font-semibold text-foreground">Preguntas</h2>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                        Define las consultas SQL que deben resolver los estudiantes
-                                    </p>
+                        {/* Título Sección Preguntas */}
+                        <motion.div variants={itemVariants} className="flex items-center justify-between pt-4 pb-2 border-b border-white/10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                    <LayoutList className="h-4 w-4 text-primary" />
                                 </div>
-                                <Button size="sm" onClick={addQuestion} className="gap-2">
-                                    <Plus className="h-4 w-4" />
-                                    Agregar pregunta
-                                </Button>
+                                <h2 className="text-lg font-bold text-foreground">Banco de Preguntas</h2>
                             </div>
+                            <span className="text-xs font-semibold text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                                {questions.length} {questions.length === 1 ? 'Pregunta' : 'Preguntas'}
+                            </span>
+                        </motion.div>
 
-                            <div className="space-y-4">
+                        {/* Lista de Preguntas */}
+                        <div className="space-y-6">
+                            <AnimatePresence>
                                 {questions.map((question, index) => (
-                                    <div
+                                    <motion.div
                                         key={question.id}
-                                        className="rounded-xl p-5 space-y-4"
-                                        style={{ background: 'rgba(17,19,31,0.6)', border: '1px solid rgba(37,42,74,0.8)' }}
+                                        layout
+                                        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0, overflow: 'hidden' }}
+                                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                                        className="bg-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-6 sm:p-8 relative group hover:border-white/10 transition-colors"
                                     >
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-semibold text-foreground">
-                                                Pregunta {index + 1}
-                                            </span>
+                                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-primary/50 to-primary/10 rounded-l-3xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="cursor-grab active:cursor-grabbing p-1.5 text-muted-foreground hover:bg-white/5 rounded-md transition-colors">
+                                                    <GripVertical className="h-4 w-4" />
+                                                </div>
+                                                <span className="text-base font-bold text-foreground">
+                                                    Pregunta <span className="text-primary">#{index + 1}</span>
+                                                </span>
+                                            </div>
                                             {questions.length > 1 && (
-                                                <button
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => removeQuestion(question.id)}
-                                                    className="text-xs text-destructive hover:underline"
+                                                    className="h-8 px-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group/btn"
                                                 >
-                                                    Eliminar
-                                                </button>
+                                                    <Trash2 className="h-4 w-4 sm:mr-1.5 group-hover/btn:scale-110 transition-transform" />
+                                                    <span className="hidden sm:inline text-xs">Eliminar</span>
+                                                </Button>
                                             )}
                                         </div>
 
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                                Título de la pregunta
-                                            </Label>
-                                            <Input
-                                                placeholder="ej: Consulta de clientes activos"
-                                                value={question.title}
-                                                onChange={e => updateQuestionField(question.id, "title", e.target.value)}
-                                                style={{ background: 'rgba(26,29,53,0.8)', border: '1px solid rgba(99,102,241,0.15)' }}
-                                            />
-                                        </div>
+                                        <div className="space-y-5 ml-2 sm:ml-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-[1fr_120px] gap-5">
+                                                <div className="space-y-2">
+                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                                                        Título de la pregunta
+                                                    </Label>
+                                                    <Input
+                                                        placeholder="ej: Filtro de clientes por país activo"
+                                                        value={question.title}
+                                                        onChange={e => updateQuestionField(question.id, "title", e.target.value)}
+                                                        className="h-10 bg-black/20 border-white/10 focus-visible:border-primary/50 transition-all rounded-lg"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1 text-primary/80">
+                                                        Valor (Pts)
+                                                    </Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={question.points}
+                                                        onChange={e => updateQuestionField(question.id, "points", e.target.value)}
+                                                        className="h-10 bg-primary/5 border-primary/20 text-primary font-bold text-center focus-visible:border-primary/50 transition-all rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                                Enunciado
-                                            </Label>
-                                            <Textarea
-                                                placeholder="Describe la tarea que debe resolver el estudiante..."
-                                                rows={2}
-                                                value={question.description}
-                                                onChange={e => updateQuestionField(question.id, "description", e.target.value)}
-                                                style={{ background: 'rgba(26,29,53,0.8)', border: '1px solid rgba(99,102,241,0.15)' }}
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1.5">
-                                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                                    Consulta SQL esperada
+                                            <div className="space-y-2">
+                                                <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                                                    Enunciado / Contexto
                                                 </Label>
                                                 <Textarea
-                                                    placeholder="SELECT nombre, pais FROM clientes ORDER BY nombre ASC;"
-                                                    rows={3}
-                                                    value={question.solutionExample}
-                                                    onChange={e => updateQuestionField(question.id, "solutionExample", e.target.value)}
-                                                    style={{
-                                                        background: 'rgba(26,29,53,0.8)',
-                                                        border: '1px solid rgba(99,102,241,0.15)',
-                                                        fontFamily: '"JetBrains Mono", monospace',
-                                                        fontSize: '12px',
-                                                        color: '#a78bfa'
-                                                    }}
+                                                    placeholder="Describe la tarea lógica o la consulta que debe resolverse..."
+                                                    rows={2}
+                                                    value={question.description}
+                                                    onChange={e => updateQuestionField(question.id, "description", e.target.value)}
+                                                    className="resize-none bg-black/20 border-white/10 focus-visible:border-primary/50 transition-all rounded-lg p-3"
                                                 />
                                             </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                                    Salida esperada
-                                                </Label>
-                                                <Textarea
-                                                    placeholder="nombre | pais&#10;Alfreds | Germany&#10;Ana T. | Mexico"
-                                                    rows={3}
-                                                    value={question.expectedOutput}
-                                                    onChange={e => updateQuestionField(question.id, "expectedOutput", e.target.value)}
-                                                    style={{
-                                                        background: 'rgba(26,29,53,0.8)',
-                                                        border: '1px solid rgba(99,102,241,0.15)',
-                                                        fontFamily: '"JetBrains Mono", monospace',
-                                                        fontSize: '12px',
-                                                        color: '#34d399'
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
 
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                                Puntos
-                                            </Label>
-                                            <Input
-                                                type="number"
-                                                className="w-28"
-                                                value={question.points}
-                                                onChange={e => updateQuestionField(question.id, "points", e.target.value)}
-                                                style={{ background: 'rgba(26,29,53,0.8)', border: '1px solid rgba(99,102,241,0.15)' }}
-                                            />
+                                            {/* Bloques de Código */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5 relative overflow-hidden">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="flex gap-1.5 mr-2">
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+                                                        </div>
+                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                            Solución Esperada (SQL/Lógica)
+                                                        </Label>
+                                                    </div>
+                                                    <Textarea
+                                                        placeholder="SELECT * FROM tabla WHERE condicion = 1;"
+                                                        rows={4}
+                                                        value={question.solutionExample}
+                                                        onChange={e => updateQuestionField(question.id, "solutionExample", e.target.value)}
+                                                        className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                                                        style={{
+                                                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                                            color: '#a78bfa',
+                                                            lineHeight: '1.6'
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5 relative overflow-hidden">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="flex gap-1.5 mr-2">
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                        </div>
+                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                            Salida en Pantalla (Tabla)
+                                                        </Label>
+                                                    </div>
+                                                    <Textarea
+                                                        placeholder="Columna1 | Columna2&#10;Dato1    | Dato2"
+                                                        rows={4}
+                                                        value={question.expectedOutput}
+                                                        onChange={e => updateQuestionField(question.id, "expectedOutput", e.target.value)}
+                                                        className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                                                        style={{
+                                                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                                                            color: '#34d399',
+                                                            lineHeight: '1.6'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 ))}
-                            </div>
+                            </AnimatePresence>
+
+                            {/* Botón flotante para agregar pregunta */}
+                            <motion.div layout>
+                                <button
+                                    onClick={addQuestion}
+                                    className="w-full mt-4 flex items-center justify-center gap-2 py-6 rounded-2xl border-2 border-dashed border-white/10 hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all duration-300 group"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                                        <Plus className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <span className="font-semibold tracking-wide">Añadir nueva pregunta al examen</span>
+                                </button>
+                            </motion.div>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    {/* Sidebar derecho */}
-                    <div className="space-y-4">
+                    {/* Columna derecha (Sidebar) */}
+                    <motion.div variants={itemVariants} className="space-y-6">
 
-                        {/* Resumen */}
-                        <div className="bg-card border border-border rounded-xl p-5 sticky top-20">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Clock className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-semibold text-foreground">Resumen del examen</span>
+                        {/* Panel de Resumen (Sticky) */}
+                        <div className="bg-card/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl sticky top-24">
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                    <span className="text-sm font-bold text-foreground block">Resumen del Examen</span>
+                                    <span className="text-xs text-muted-foreground">Vista en tiempo real</span>
+                                </div>
                             </div>
-                            <div className="space-y-3">
+
+                            <div className="space-y-4">
                                 {[
-                                    { label: "Preguntas", value: questions.length, accent: true },
-                                    { label: "Puntos totales", value: `${totalPoints} pts`, accent: false },
-                                    { label: "Duración", value: durationMinutes ? `${durationMinutes} min` : "—", accent: false },
-                                    { label: "Estado", value: "Borrador", accent: true },
+                                    { label: "Total Preguntas", value: questions.length, highlight: false },
+                                    { label: "Puntaje Máximo", value: `${totalPoints} pts`, highlight: true },
+                                    { label: "Tiempo Límite", value: durationMinutes ? `${durationMinutes} m` : "—", highlight: false },
                                 ].map((item, i) => (
-                                    <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                                        <span className="text-xs text-muted-foreground">{item.label}</span>
-                                        <span className={`text-sm font-semibold ${item.accent ? 'text-primary' : 'text-foreground'}`}>
+                                    <div key={i} className="flex items-center justify-between bg-black/20 p-3.5 rounded-xl border border-white/5">
+                                        <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
+                                        <span className={`text-sm font-black ${item.highlight ? 'text-primary' : 'text-foreground'}`}>
                                             {item.value}
                                         </span>
                                     </div>
                                 ))}
                             </div>
+
+                            <Button
+                                onClick={handleSaveExam}
+                                disabled={saving}
+                                className="w-full mt-6 gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 h-11 text-sm font-bold tracking-wide"
+                            >
+                                <Save className="h-4 w-4" />
+                                {saving ? "Procesando..." : "Finalizar y Guardar"}
+                            </Button>
                         </div>
 
-                        {/* Base de datos */}
-                        <div className="bg-card border border-border rounded-xl p-5">
-                            <div className="flex items-center gap-2 mb-4">
+                        {/* Selección de Base de Datos */}
+                        <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6">
+                            <div className="flex items-center gap-2 mb-5">
                                 <Database className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-semibold text-foreground">Base de datos</span>
+                                <span className="text-sm font-bold text-foreground">Asignar Base de Datos</span>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-2.5">
                                 {[
-                                    { id: "", label: "Sin base de datos", sub: "Consultas libres" },
-                                    { id: "db-usuarios", label: "Usuarios DB", sub: "importada" },
-                                    { id: "db-productos", label: "Productos DB", sub: "importada" },
-                                    { id: "db-biblioteca", label: "Biblioteca DB", sub: "importada" },
+                                    { id: "", label: "Sin base de datos", sub: "Preguntas teóricas / libres" },
+                                    { id: "db-usuarios", label: "Usuarios DB", sub: "Esquema importado" },
+                                    { id: "db-productos", label: "Productos DB", sub: "Esquema importado" },
+                                    { id: "db-biblioteca", label: "Biblioteca DB", sub: "Esquema importado" },
                                 ].map(db => (
                                     <button
                                         key={db.id}
                                         onClick={() => setDatabaseID(db.id)}
-                                        className="w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all"
+                                        className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
                                         style={{
-                                            background: 'rgba(17,19,31,0.6)',
+                                            background: databaseID === db.id ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
                                             border: databaseID === db.id
-                                                ? '1px solid rgba(99,102,241,0.6)'
-                                                : '1px solid rgba(37,42,74,0.8)',
+                                                ? '1px solid rgba(99,102,241,0.5)'
+                                                : '1px solid rgba(255,255,255,0.05)',
                                         }}
                                     >
-                                        <div className="w-2 h-2 rounded-full flex-shrink-0"
-                                            style={{ background: databaseID === db.id ? '#6366f1' : '#252A4A' }} />
+                                        <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0 transition-colors"
+                                            style={{ borderColor: databaseID === db.id ? '#6366f1' : '' }}>
+                                            {databaseID === db.id && (
+                                                <motion.div layoutId="dbIndicator" className="w-2 h-2 rounded-full bg-primary" />
+                                            )}
+                                        </div>
                                         <div>
-                                            <p className="text-xs font-semibold text-foreground">{db.label}</p>
-                                            <p className="text-xs text-muted-foreground">{db.sub}</p>
+                                            <p className={`text-sm font-bold transition-colors ${databaseID === db.id ? 'text-primary' : 'text-foreground group-hover:text-primary/70'}`}>
+                                                {db.label}
+                                            </p>
+                                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{db.sub}</p>
                                         </div>
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </div>

@@ -1,8 +1,9 @@
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
-import { Database, ArrowLeft, Search, Mail, ChevronRight, Users } from "lucide-react";
+import { Database, ArrowLeft, Search, Mail, ChevronRight, Users, GraduationCap, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 const mockStudents = [
   { id: 1, name: "Juan Pérez", email: "juan.perez@uninorte.edu.co", exams: 5, avgScore: 8.5, status: "Activo" },
@@ -13,9 +14,9 @@ const mockStudents = [
 ];
 
 const getScoreStyle = (score) => {
-  if (score >= 9) return { color: "#34d399", bg: "rgba(52,211,153,0.1)" };
-  if (score >= 7) return { color: "#6366f1", bg: "rgba(99,102,241,0.1)" };
-  return { color: "#f87171", bg: "rgba(248,113,113,0.1)" };
+  if (score >= 9) return { color: "#34d399", bg: "rgba(52,211,153,0.1)", border: "rgba(52,211,153,0.3)" };
+  if (score >= 7) return { color: "#818cf8", bg: "rgba(99,102,241,0.1)", border: "rgba(99,102,241,0.3)" };
+  return { color: "#f87171", bg: "rgba(248,113,113,0.1)", border: "rgba(248,113,113,0.3)" };
 };
 
 const getInitials = (name) =>
@@ -33,169 +34,210 @@ const StudentsList = () => {
   const activeCount = mockStudents.filter(s => s.status === "Activo").length;
   const avgGeneral = (mockStudents.reduce((sum, s) => sum + s.avgScore, 0) / mockStudents.length).toFixed(1);
 
+  // Animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-12">
 
       {/* Navbar */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Database className="h-4 w-4 text-white" />
+      <header className="border-b border-white/10 bg-card/60 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
+        <div className="container mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-all duration-300">
+              <Database className="h-4 w-4 text-white group-hover:rotate-12 transition-transform" />
             </div>
-            <span className="text-lg font-bold text-foreground">QueryLogic</span>
+            <span className="text-lg font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">QueryLogic</span>
           </div>
           <Button
-            variant="ghost"
-            size="sm"
+            variant="ghost" size="sm"
             onClick={() => navigate("/preview/teacher")}
-            className="gap-2 text-muted-foreground hover:text-foreground"
+            className="gap-2 text-muted-foreground hover:text-foreground hover:bg-white/5 active:scale-95 transition-all duration-200 group"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden sm:inline">Volver al Panel</span>
           </Button>
         </div>
       </header>
 
-      <div className="container mx-auto px-8 py-8">
+      <div className="container mx-auto px-4 sm:px-8 py-10">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          {/* Header */}
+          <motion.div variants={itemVariants} className="mb-10">
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Gestión de Estudiantes</h1>
+            <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+              Administra y visualiza el progreso de tus estudiantes. Escanea rápidamente sus calificaciones y estados.
+            </p>
+          </motion.div>
 
-        {/* Título */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Gestión de Estudiantes</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Administra y visualiza el progreso de tus estudiantes
-          </p>
-        </div>
-
-        {/* Stats rápidas */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {[
-            { label: "Total estudiantes", value: mockStudents.length, color: "text-foreground" },
-            { label: "Estudiantes activos", value: activeCount, color: "text-success" },
-            { label: "Promedio general", value: avgGeneral, color: "text-primary" },
-          ].map((stat, i) => (
-            <div key={i} className="bg-card border border-border rounded-xl p-5">
-              <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-              <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabla */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-
-          {/* Header de la tabla */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">
-                Lista de estudiantes
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">
-                ({filtered.length})
-              </span>
-            </div>
-            {/* Buscador */}
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre o email..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 text-sm h-9"
-                style={{
-                  background: 'rgba(17,19,31,0.8)',
-                  border: '1px solid rgba(99,102,241,0.2)',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Encabezados */}
-          <div className="grid grid-cols-[2fr_2.5fr_1fr_1fr_1fr_1fr] px-6 py-3 border-b border-border">
-            {["Estudiante", "Email", "Exámenes", "Promedio", "Estado", ""].map((h, i) => (
-              <span key={i} className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                {h}
-              </span>
-            ))}
-          </div>
-
-          {/* Filas */}
-          {filtered.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">
-                No se encontraron estudiantes con ese criterio
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {filtered.map(student => {
-                const scoreStyle = getScoreStyle(student.avgScore);
-                const initials = getInitials(student.name);
-                return (
-                  <div
-                    key={student.id}
-                    className="grid grid-cols-[2fr_2.5fr_1fr_1fr_1fr_1fr] px-6 py-4 items-center hover:bg-muted/20 transition-colors"
-                  >
-                    {/* Nombre con avatar */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                        {initials}
-                      </div>
-                      <span className="text-sm font-semibold text-foreground">
-                        {student.name}
-                      </span>
+          {/* Stats rápidas */}
+          <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10">
+            {[
+              { label: "Total inscritos", value: mockStudents.length, color: "text-foreground", icon: Users },
+              { label: "Usuarios activos", value: activeCount, color: "text-success", icon: Activity },
+              { label: "Promedio general", value: avgGeneral, color: "text-primary", icon: GraduationCap },
+            ].map((stat, i) => {
+              const Icon = stat.icon;
+              return (
+                <div key={i} className="bg-card/40 backdrop-blur-md border border-white/5 hover:border-white/10 rounded-2xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/10 transition-colors"></div>
+                  <div className="flex items-start justify-between relative z-10">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{stat.label}</p>
+                      <p className={`text-4xl font-extrabold tracking-tight ${stat.color}`}>{stat.value}</p>
                     </div>
-
-                    {/* Email */}
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="text-sm truncate">{student.email}</span>
-                    </div>
-
-                    {/* Exámenes */}
-                    <span className="text-sm text-muted-foreground">
-                      {student.exams} completados
-                    </span>
-
-                    {/* Promedio */}
-                    <span
-                      className="text-sm font-bold px-2 py-0.5 rounded-full w-fit"
-                      style={{ color: scoreStyle.color, background: scoreStyle.bg }}
-                    >
-                      {student.avgScore.toFixed(1)}
-                    </span>
-
-                    {/* Estado */}
-                    <span
-                      className="text-xs font-semibold px-3 py-1 rounded-full w-fit"
-                      style={student.status === "Activo"
-                        ? { color: "#34d399", background: "rgba(52,211,153,0.1)" }
-                        : { color: "#7c7fa8", background: "rgba(124,127,168,0.1)" }
-                      }
-                    >
-                      {student.status}
-                    </span>
-
-                    {/* Acción (cambiar onClick a /student/:id cuando se tenga el backend)*/}
-                    <div className="flex justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/preview/student/${student.id}`)}
-                        className="gap-1 text-xs border-primary/30 text-primary hover:bg-primary/10"
-                      >
-                        Ver detalles
-                        <ChevronRight className="h-3 w-3" />
-                      </Button>
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform">
+                      <Icon className="h-5 w-5" />
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
+          </motion.div>
+
+          {/* Contenedor Principal (Tabla) */}
+          <motion.div variants={itemVariants} className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
+
+            {/* Header de la tabla */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 border-b border-white/10 bg-black/20">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-foreground">
+                    Directorio de estudiantes
+                  </h2>
+                  <p className="text-xs text-muted-foreground">Mostrando {filtered.length} resultados</p>
+                </div>
+              </div>
+
+              {/* Buscador */}
+              <div className="relative w-full sm:w-72 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder="Buscar por nombre o correo..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 bg-black/40 border-white/10 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl shadow-inner"
+                />
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Tabla Responsive Container */}
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                {/* Encabezados */}
+                <div className="grid grid-cols-[2.5fr_2fr_1.5fr_1fr_1fr_1fr] px-8 py-4 border-b border-white/5 bg-black/10">
+                  {["Estudiante", "Correo Electrónico", "Exámenes", "Promedio", "Estado", ""].map((h, i) => (
+                    <span key={i} className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                      {h}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Filas */}
+                {filtered.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="px-6 py-16 text-center"
+                  >
+                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
+                      <Search className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-base font-semibold text-foreground mb-1">Sin resultados</h3>
+                    <p className="text-sm text-muted-foreground">
+                      No se encontraron estudiantes que coincidan con tu búsqueda.
+                    </p>
+                  </motion.div>
+                ) : (
+                  <div className="divide-y divide-white/5">
+                    {filtered.map((student, idx) => {
+                      const scoreStyle = getScoreStyle(student.avgScore);
+                      const initials = getInitials(student.name);
+                      return (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          key={student.id}
+                          onClick={() => navigate(`/preview/student/${student.id}`)}
+                          className="group grid grid-cols-[2.5fr_2fr_1.5fr_1fr_1fr_1fr] px-8 py-5 items-center hover:bg-white/5 transition-all duration-300 cursor-pointer relative"
+                        >
+                          {/* Línea indicadora on hover */}
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                          {/* Nombre con avatar */}
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                              {initials}
+                            </div>
+                            <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                              {student.name}
+                            </span>
+                          </div>
+
+                          {/* Email */}
+                          <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground/80 transition-colors">
+                            <Mail className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
+                            <span className="text-sm truncate font-medium">{student.email}</span>
+                          </div>
+
+                          {/* Exámenes */}
+                          <span className="text-sm text-muted-foreground font-medium">
+                            <span className="text-foreground">{student.exams}</span> resueltos
+                          </span>
+
+                          {/* Promedio */}
+                          <span
+                            className="text-xs font-black px-2.5 py-1 rounded-md w-fit border"
+                            style={{ color: scoreStyle.color, background: scoreStyle.bg, borderColor: scoreStyle.border }}
+                          >
+                            {student.avgScore.toFixed(1)}
+                          </span>
+
+                          {/* Estado */}
+                          <div className="flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                              {student.status === "Activo" && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>}
+                              <span className={`relative inline-flex rounded-full h-2 w-2 ${student.status === "Activo" ? "bg-success" : "bg-muted-foreground"}`}></span>
+                            </span>
+                            <span className="text-xs font-bold tracking-wide" style={{ color: student.status === "Activo" ? "#34d399" : "#7c7fa8" }}>
+                              {student.status.toUpperCase()}
+                            </span>
+                          </div>
+
+                          {/* Acción (Flecha) */}
+                          <div className="flex justify-end pr-2">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all group-hover:translate-x-1">
+                              <ChevronRight className="h-5 w-5" />
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

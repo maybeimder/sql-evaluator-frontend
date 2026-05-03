@@ -1,134 +1,252 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database, Play, CheckCircle2, LogOut } from "lucide-react";
+import { Database, Play, CheckCircle2, LogOut, Code2, Terminal, ChevronLeft, ChevronRight, FileText, Database as DbIcon, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ExamEvaluator = () => {
   const navigate = useNavigate();
   const [sqlCode, setSqlCode] = useState("SELECT * FROM usuarios WHERE edad > 18;");
   const [output, setOutput] = useState("");
+  const [isExecuting, setIsExecuting] = useState(false);
 
   const mockQuestion = {
     title: "Consulta de Usuarios Mayores de Edad",
     description: "Escribe una consulta SQL que devuelva todos los usuarios mayores de 18 años. La tabla se llama 'usuarios' y tiene las columnas: id, nombre, email, edad.",
     expectedOutput: "3 registros encontrados",
     points: 10,
+    type: "SQL" // Puede ser "Pseudocódigo"
   };
 
   const handleRunQuery = () => {
-    // Mock execution
-    setOutput("✓ Consulta ejecutada correctamente\n\n3 registros encontrados:\n\nid | nombre        | email              | edad\n1  | Ana García    | ana@email.com      | 24\n2  | Luis Pérez    | luis@email.com     | 31\n5  | María López   | maria@email.com    | 22");
+    setIsExecuting(true);
+    // Simulamos un pequeñísimo delay para dar sensación de procesamiento
+    setTimeout(() => {
+        setOutput("✓ Consulta ejecutada correctamente\n\n3 registros encontrados:\n\nid | nombre        | email              | edad\n1  | Ana García    | ana@email.com      | 24\n2  | Luis Pérez    | luis@email.com     | 31\n5  | María López   | maria@email.com    | 22");
+        setIsExecuting(false);
+    }, 400);
+  };
+
+  // Animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Database className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">SQLEvaluator</span>
+    <div className="h-screen flex flex-col bg-[#0d0f1a] overflow-hidden font-sans text-foreground">
+      
+      {/* Header General */}
+      <motion.header 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="h-14 border-b border-white/10 bg-black/40 backdrop-blur-md flex-shrink-0 z-50 relative"
+      >
+        <div className="h-full px-4 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                <Database className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-base font-bold text-foreground tracking-wide hidden sm:block">QueryLogic<span className="text-muted-foreground font-normal ml-2">| Evaluador</span></span>
           </div>
-          <div className="flex items-center gap-4">
-            <Button onClick={() => navigate("/dashboard/student")}>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Enviar Examen
+          
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate("/dashboard/student")}
+                className="text-muted-foreground hover:text-white hover:bg-white/5 transition-colors h-8 text-xs"
+            >
+              <LogOut className="h-3.5 w-3.5 sm:mr-2" />
+              <span className="hidden sm:inline">Salir sin guardar</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/student")}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Salir
+            <Button 
+                size="sm" 
+                onClick={() => navigate("/dashboard/student")}
+                className="h-8 text-xs gap-1.5 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Enviar Examen</span>
             </Button>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Left Side - Question */}
-        <div className="w-2/5 border-r border-border bg-card p-6 overflow-y-auto">
-          <div className="mb-4">
-            <span className="text-sm font-medium text-muted-foreground">Pregunta 1 de 5</span>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>{mockQuestion.title}</CardTitle>
-              <CardDescription>Valor: {mockQuestion.points} puntos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-foreground mb-4">{mockQuestion.description}</p>
-              
-              <div className="bg-muted p-4 rounded-lg mb-4">
-                <h4 className="font-semibold text-sm mb-2">Salida Esperada:</h4>
-                <code className="text-sm text-muted-foreground">{mockQuestion.expectedOutput}</code>
-              </div>
+      {/* Main Layout */}
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="flex-1 flex flex-col md:flex-row min-h-0 relative"
+      >
+        
+        {/* Panel Izquierdo (Pregunta) */}
+        <motion.div variants={itemVariants} className="w-full md:w-[35%] lg:w-[30%] flex flex-col border-r border-white/10 bg-[#111320]/80 backdrop-blur-md z-10">
+            {/* Header Pregunta */}
+            <div className="p-4 sm:p-5 border-b border-white/5">
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-primary tracking-widest uppercase bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
+                        Pregunta 1 de 5
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                        {mockQuestion.points} pts
+                    </span>
+                </div>
+                <h2 className="text-lg font-bold text-foreground leading-tight mb-2">
+                    {mockQuestion.title}
+                </h2>
+                <div className="flex items-center gap-1.5">
+                    <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                    <span className="text-[10px] font-bold text-blue-400 tracking-wider uppercase">
+                        {mockQuestion.type}
+                    </span>
+                </div>
+            </div>
 
-              <div className="bg-muted p-4 rounded-lg">
-                <h4 className="font-semibold text-sm mb-2">Esquema de la Tabla:</h4>
-                <pre className="text-sm text-muted-foreground font-mono">
+            {/* Contenido Pregunta (Scrollable) */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar">
+                
+                <div className="text-sm text-foreground/90 leading-relaxed">
+                    <p>{mockQuestion.description}</p>
+                </div>
+
+                {/* Esquema de Tabla (Solo si es SQL) */}
+                {mockQuestion.type === "SQL" && (
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                            <DbIcon className="h-3.5 w-3.5" />
+                            <h4 className="text-xs font-bold uppercase tracking-wider">Esquema de la Tabla</h4>
+                        </div>
+                        <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-primary/50 transition-colors"></div>
+                            <pre className="text-[13px] text-muted-foreground font-mono leading-relaxed pl-2 overflow-x-auto">
 {`usuarios (
   id INT PRIMARY KEY,
   nombre VARCHAR(100),
   email VARCHAR(100),
   edad INT
 )`}
-                </pre>
-              </div>
-            </CardContent>
-          </Card>
+                            </pre>
+                        </div>
+                    </div>
+                )}
 
-          <div className="mt-4 flex gap-2">
-            <Button variant="outline" className="flex-1">
-              ← Anterior
-            </Button>
-            <Button className="flex-1">
-              Siguiente →
-            </Button>
-          </div>
+                {/* Salida Esperada */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <Info className="h-3.5 w-3.5" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider">Salida Esperada</h4>
+                    </div>
+                    <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-green-500/50 transition-colors"></div>
+                        <code className="text-[13px] text-green-400/90 font-mono pl-2 block break-all">
+                            {mockQuestion.expectedOutput}
+                        </code>
+                    </div>
+                </div>
+
+            </div>
+
+            {/* Navegación Footer */}
+            <div className="p-4 border-t border-white/5 flex gap-3 bg-black/20">
+                <Button variant="outline" className="flex-1 h-9 text-xs gap-1 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white transition-all">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Anterior
+                </Button>
+                <Button className="flex-1 h-9 text-xs gap-1 border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary transition-all shadow-none">
+                    Siguiente
+                    <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+            </div>
+        </motion.div>
+
+        {/* Panel Derecho (Editor + Output) */}
+        <div className="flex-1 flex flex-col min-h-0 bg-[#0d0f1a] relative z-0">
+          
+          {/* Top Half: Editor */}
+          <motion.div variants={itemVariants} className="flex-1 flex flex-col min-h-[50%] border-b border-white/10">
+            {/* Editor Toolbar */}
+            <div className="h-12 bg-[#151828] border-b border-white/5 flex items-center justify-between px-4 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                    <Code2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-foreground/80 tracking-wide">Espacio de trabajo</span>
+                </div>
+                <Button 
+                    size="sm" 
+                    onClick={handleRunQuery}
+                    disabled={isExecuting}
+                    className="h-8 gap-1.5 bg-green-500 hover:bg-green-400 text-black font-bold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:-translate-y-0.5 transition-all active:scale-95"
+                >
+                    <Play className={`h-3.5 w-3.5 ${isExecuting ? 'animate-pulse' : ''}`} />
+                    {isExecuting ? 'Ejecutando...' : 'Ejecutar Código'}
+                </Button>
+            </div>
+            
+            {/* Editor Area */}
+            <div className="flex-1 relative bg-[#090a10]">
+                {/* Line numbers fake aesthetic */}
+                <div className="absolute left-0 top-0 bottom-0 w-10 bg-[#0d0f1a] border-r border-white/5 flex flex-col text-right pr-2 py-4 text-[#4a5568] text-[13px] font-mono select-none">
+                    {[1,2,3,4,5,6,7,8,9,10].map(n => <div key={n} className="leading-relaxed opacity-50">{n}</div>)}
+                </div>
+                <Textarea
+                    value={sqlCode}
+                    onChange={(e) => setSqlCode(e.target.value)}
+                    className="absolute inset-0 pl-14 pr-4 py-4 w-full h-full font-mono text-[14px] bg-transparent text-[#e2e8f0] border-none resize-none focus-visible:ring-0 leading-relaxed"
+                    placeholder="Escribe tu código aquí..."
+                    spellCheck="false"
+                    style={{ tabSize: 4 }}
+                />
+            </div>
+          </motion.div>
+
+          {/* Bottom Half: Output Console */}
+          <motion.div variants={itemVariants} className="h-1/3 min-h-[200px] flex flex-col bg-[#090a10]">
+            {/* Console Toolbar */}
+            <div className="h-10 bg-[#111320] border-b border-white/5 flex items-center px-4 gap-2 flex-shrink-0">
+                <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consola de Salida</span>
+            </div>
+            
+            {/* Console Output Area */}
+            <div className="flex-1 p-4 overflow-y-auto custom-scrollbar relative">
+                <AnimatePresence mode="wait">
+                    {output ? (
+                        <motion.div
+                            key="output"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="font-mono text-[13px]"
+                        >
+                            <pre className="text-[#a78bfa] whitespace-pre-wrap leading-relaxed">
+                                {output}
+                            </pre>
+                        </motion.div>
+                    ) : (
+                        <motion.div 
+                            key="empty"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50"
+                        >
+                            <Terminal className="h-8 w-8 mb-2 opacity-50" />
+                            <p className="text-xs font-medium">Esperando ejecución...</p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+          </motion.div>
+
         </div>
-
-        {/* Right Side - Code Editor and Output */}
-        <div className="flex-1 flex flex-col">
-          {/* Code Editor */}
-          <div className="flex-1 border-b border-border">
-            <div className="bg-card border-b border-border px-4 py-2 flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Editor SQL</h3>
-              <Button size="sm" onClick={handleRunQuery}>
-                <Play className="h-4 w-4 mr-2" />
-                Ejecutar
-              </Button>
-            </div>
-            <div className="h-full p-4 bg-editor-bg">
-              <Textarea
-                value={sqlCode}
-                onChange={(e) => setSqlCode(e.target.value)}
-                className="h-full font-mono text-sm bg-editor-bg text-editor-text border-none resize-none focus-visible:ring-0"
-                placeholder="Escribe tu consulta SQL aquí..."
-              />
-            </div>
-          </div>
-
-          {/* Output */}
-          <div className="h-1/3 border-t border-border">
-            <div className="bg-card border-b border-border px-4 py-2">
-              <h3 className="font-semibold text-foreground">Resultado</h3>
-            </div>
-            <div className="h-full p-4 bg-output-bg overflow-y-auto">
-              {output ? (
-                <pre className="text-sm font-mono text-foreground whitespace-pre-wrap">
-                  {output}
-                </pre>
-              ) : (
-                <p className="text-muted-foreground text-sm">
-                  Haz clic en "Ejecutar" para ver el resultado de tu consulta
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

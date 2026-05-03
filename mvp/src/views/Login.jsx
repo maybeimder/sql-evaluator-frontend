@@ -246,6 +246,12 @@ const Login = ({ noPermission = false }) => {
                             >
                                 Ver Dashboard Estudiante
                             </button>
+                            <button
+                                onClick={() => navigate("/preview/admin")}
+                                className="flex-1 py-2 text-xs rounded-lg border border-blue-500/30 text-blue-500 hover:bg-blue-500/10 transition-all"
+                            >
+                                Ver Dashboard Admin
+                            </button>
                         </div>
                     </div>
 
