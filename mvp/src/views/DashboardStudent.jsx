@@ -131,30 +131,43 @@ const DashboardStudent = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="mb-8"
+                    className="mb-6"
                 >
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 mb-2">Mi Panel</h1>
-                    <p className="text-muted-foreground">
-                        Accede a tus exámenes y revisa tu progreso
-                    </p>
+                    <div>
+                        <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Mi Espacio de Estudio</p>
+                        <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                            {user?.FullName ? `Hola, ${user.FullName.split(' ')[0]}` : 'Mi Panel'}
+                        </h1>
+                        <p className="text-muted-foreground text-sm mt-1">Accede a tus exámenes y revisa tu progreso</p>
+                    </div>
                 </motion.div>
 
-                {/*Boton acceso directo al evaluador -- BORRARLO*/}
-                <Button
-                    onClick={() => navigate("/preview/exam")}
-                    className="flex-1 py-2 text-xs rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-all"
-                >
-                    <Play className="h-4 w-4" />
-                    Ir al evaluador
-                </Button>
-
-                {/*BORRAR ACCESO DIRECTO*/}
-                <Button
-                    variant="outline"
-                    onClick={() => navigate(`/preview/student/exams/1`)}
-                >
-                    Ver ExamDetailStudent
-                </Button>
+                {/* Dev preview — accesos directos de prueba */}
+                <div className="mb-6 p-4 rounded-xl border border-dashed border-primary/20 bg-primary/5 backdrop-blur-sm">
+                    <p className="text-[10px] font-bold text-primary/50 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse inline-block"></span>
+                        Modo previsualización
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            onClick={() => navigate("/preview/exam")}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs border-primary/20 text-primary hover:bg-primary/10 gap-1.5 h-8"
+                        >
+                            <Play className="h-3 w-3" />
+                            Ir al evaluador
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/preview/student/exams/1`)}
+                            className="text-xs border-white/10 text-muted-foreground hover:bg-white/5 h-8"
+                        >
+                            Ver ExamDetailStudent
+                        </Button>
+                    </div>
+                </div>
 
                 {errorMsg && (
                     <motion.div
@@ -206,8 +219,8 @@ const DashboardStudent = () => {
                                         {progressPercentage}%
                                     </div>
                                 </div>
-                                <div className="w-full bg-muted/30 h-1.5 rounded-full mt-3 overflow-hidden">
-                                    <div className="bg-success h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}></div>
+                                <div className="w-full bg-muted/30 h-2 rounded-full mt-4 overflow-hidden">
+                                    <div className="bg-success h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_6px_rgba(52,211,153,0.5)]" style={{ width: `${progressPercentage}%` }}></div>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-2 opacity-80">
                                     {totalExams > 0

@@ -150,6 +150,7 @@ const DatabasesList = () => {
                     {/* Header y Botones de acción */}
                     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
                         <div>
+                            <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Gestión de Datos</p>
                             <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Bases de Datos</h1>
                             <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
                                 Administra las bases de datos disponibles para tus exámenes. Crea nuevas instancias, importa esquemas existentes o limpia datos antiguos.
@@ -212,7 +213,7 @@ const DatabasesList = () => {
 
                                         {/* Header de la card */}
                                         <div className="flex items-start gap-4 mb-6 relative z-10">
-                                            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 border border-primary/20 shadow-sm group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300">
                                                 <Database className="h-6 w-6 text-primary" />
                                             </div>
                                             <div className="flex-1 min-w-0">

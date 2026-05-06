@@ -55,7 +55,15 @@ const ExamEvaluator = () => {
             </div>
             <span className="text-base font-bold text-foreground tracking-wide hidden sm:block">QueryLogic<span className="text-muted-foreground font-normal ml-2">| Evaluador</span></span>
           </div>
-          
+
+          {/* Question progress indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-black/30 px-4 py-1.5 rounded-full border border-white/5">
+            {[1,2,3,4,5].map(n => (
+              <div key={n} className={`h-1.5 rounded-full transition-all duration-300 ${n === 1 ? 'w-6 bg-primary shadow-[0_0_6px_rgba(99,102,241,0.6)]' : 'w-4 bg-white/10'}`}></div>
+            ))}
+            <span className="text-xs text-muted-foreground ml-1.5">1/5</span>
+          </div>
+
           <div className="flex items-center gap-2 sm:gap-4">
             <Button 
                 variant="ghost" 
@@ -91,11 +99,11 @@ const ExamEvaluator = () => {
             {/* Header Pregunta */}
             <div className="p-4 sm:p-5 border-b border-white/5">
                 <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold text-primary tracking-widest uppercase bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
+                    <span className="text-xs font-bold text-primary tracking-widest uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/20 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
                         Pregunta 1 de 5
                     </span>
-                    <span className="text-xs font-semibold text-muted-foreground">
-                        {mockQuestion.points} pts
+                    <span className="flex items-center gap-1 text-xs font-bold text-foreground bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
+                        {mockQuestion.points} <span className="text-muted-foreground font-normal">pts</span>
                     </span>
                 </div>
                 <h2 className="text-lg font-bold text-foreground leading-tight mb-2">
@@ -122,9 +130,9 @@ const ExamEvaluator = () => {
                 {/* Esquema de Tabla (Solo si es SQL) */}
                 {mockQuestion.type === "SQL" && (
                     <div className="space-y-2">
-                        <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                            <DbIcon className="h-3.5 w-3.5" />
-                            <h4 className="text-xs font-bold uppercase tracking-wider">Esquema de la Tabla</h4>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <DbIcon className="h-3.5 w-3.5 text-primary/60" />
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary/60">Esquema de la Tabla</h4>
                         </div>
                         <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-primary/50 transition-colors"></div>
@@ -142,9 +150,9 @@ const ExamEvaluator = () => {
 
                 {/* Salida Esperada */}
                 <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                        <Info className="h-3.5 w-3.5" />
-                        <h4 className="text-xs font-bold uppercase tracking-wider">Salida Esperada</h4>
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <Info className="h-3.5 w-3.5 text-success/60" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-success/60">Salida Esperada</h4>
                     </div>
                     <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-green-500/50 transition-colors"></div>
@@ -186,8 +194,17 @@ const ExamEvaluator = () => {
                     disabled={isExecuting}
                     className="h-8 gap-1.5 bg-green-500 hover:bg-green-400 text-black font-bold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:-translate-y-0.5 transition-all active:scale-95"
                 >
-                    <Play className={`h-3.5 w-3.5 ${isExecuting ? 'animate-pulse' : ''}`} />
-                    {isExecuting ? 'Ejecutando...' : 'Ejecutar Código'}
+                    {isExecuting ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-black/30 border-t-black/80 rounded-full animate-spin"></div>
+                            Ejecutando...
+                        </>
+                    ) : (
+                        <>
+                            <Play className="h-3.5 w-3.5" />
+                            Ejecutar Código
+                        </>
+                    )}
                 </Button>
             </div>
             

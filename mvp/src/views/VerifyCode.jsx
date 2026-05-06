@@ -289,7 +289,7 @@ const VerifyCode = () => {
                                 <button
                                     onClick={handleResendCode}
                                     disabled={isResending || loading || isSuccess}
-                                    className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center justify-center gap-1.5 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center justify-center gap-1.5 mx-auto disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                                 >
                                     <RefreshCcw className={`h-3.5 w-3.5 ${isResending ? 'animate-spin' : ''}`} />
                                     {isResending ? "Enviando..." : "Reenviar código"}

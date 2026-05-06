@@ -284,7 +284,7 @@ const TeacherExamStudentDetail = () => {
                               </div>
                           </div>
                           
-                          <div className="flex flex-col items-center md:items-end bg-black/20 p-5 rounded-2xl border border-white/5 min-w-[200px] justify-center">
+                          <div className="flex flex-col items-center md:items-end bg-black/20 p-5 rounded-2xl border border-primary/15 shadow-[0_0_25px_rgba(99,102,241,0.08)] min-w-[200px] justify-center">
                               <div className="relative">
                                   <svg className="w-24 h-24 transform -rotate-90">
                                       <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-muted/20" />
@@ -310,7 +310,7 @@ const TeacherExamStudentDetail = () => {
                     <div className="flex flex-col sm:flex-row justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold border border-primary/20 shadow-sm">
+                            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold border border-primary/20 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
                                 {idx + 1}
                             </span>
                             <CardTitle className="text-lg sm:text-xl text-foreground">
@@ -356,7 +356,7 @@ const TeacherExamStudentDetail = () => {
                             <Terminal className="h-4 w-4 text-muted-foreground" />
                             <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Comparación de Resultados</h4>
                         </div>
-                        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 bg-black/20 p-4 sm:p-5 rounded-xl border border-white/5">
+                        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 bg-black/25 p-4 sm:p-5 rounded-xl border border-white/5">
                             <div className="flex flex-col">
                                 <div className="flex items-center justify-between mb-3">
                                     <p className="text-xs font-semibold text-muted-foreground">

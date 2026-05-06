@@ -178,7 +178,7 @@ const Login = ({ noPermission = false }) => {
                                 <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                     Contraseña
                                 </Label>
-                                <button type="button" className="text-xs text-primary hover:underline">
+                                <button type="button" className="text-xs text-primary hover:underline cursor-pointer">
                                     ¿Olvidaste tu contraseña?
                                 </button>
                             </div>
@@ -226,29 +226,33 @@ const Login = ({ noPermission = false }) => {
                         onClick={() => navigate("/dashboard/student")}
                         className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground hover:text-foreground"
                     >
-                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         Iniciar sesión con Roble
                     </button>
 
                     {/* SOLO PARA PRUEBAS VISUALES - quitar después */}
-                    <div className="mt-4 pt-4 border-t border-border">
-                        <p className="text-xs text-muted-foreground text-center mb-3">Acceso rápido para pruebas</p>
+                    <div className="mt-5 pt-5 border-t border-border/40 rounded-xl">
+                        <p className="text-[10px] font-bold text-muted-foreground/60 text-center mb-3 uppercase tracking-widest flex items-center justify-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block"></span>
+                            Modo previsualización
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block"></span>
+                        </p>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => navigate("/preview/teacher")}
-                                className="flex-1 py-2 text-xs rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-all"
+                                className="flex-1 py-2 text-xs rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 hover:border-primary/40 transition-all duration-200 font-medium cursor-pointer"
                             >
                                 Ver Dashboard Profesor
                             </button>
                             <button
                                 onClick={() => navigate("/preview/student")}
-                                className="flex-1 py-2 text-xs rounded-lg border border-success/30 text-success hover:bg-success/10 transition-all"
+                                className="flex-1 py-2 text-xs rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/15 hover:border-success/40 transition-all duration-200 font-medium cursor-pointer"
                             >
                                 Ver Dashboard Estudiante
                             </button>
                             <button
                                 onClick={() => navigate("/preview/admin")}
-                                className="flex-1 py-2 text-xs rounded-lg border border-blue-500/30 text-blue-500 hover:bg-blue-500/10 transition-all"
+                                className="flex-1 py-2 text-xs rounded-lg border border-accent/20 bg-accent/5 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all duration-200 font-medium cursor-pointer"
                             >
                                 Ver Dashboard Admin
                             </button>

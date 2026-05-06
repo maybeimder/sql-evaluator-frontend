@@ -79,6 +79,7 @@ const StudentsList = () => {
         >
           {/* Header */}
           <motion.div variants={itemVariants} className="mb-10">
+            <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Gestión Académica</p>
             <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Gestión de Estudiantes</h1>
             <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
               Administra y visualiza el progreso de tus estudiantes. Escanea rápidamente sus calificaciones y estados.
@@ -88,9 +89,9 @@ const StudentsList = () => {
           {/* Stats rápidas */}
           <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10">
             {[
-              { label: "Total inscritos", value: mockStudents.length, color: "text-foreground", icon: Users },
-              { label: "Usuarios activos", value: activeCount, color: "text-success", icon: Activity },
-              { label: "Promedio general", value: avgGeneral, color: "text-primary", icon: GraduationCap },
+              { label: "Total inscritos", value: mockStudents.length, color: "text-foreground", icon: Users, iconColor: "text-foreground/60", iconBg: "bg-white/5 border-white/10" },
+              { label: "Usuarios activos", value: activeCount, color: "text-success", icon: Activity, iconColor: "text-success", iconBg: "bg-success/10 border-success/20" },
+              { label: "Promedio general", value: avgGeneral, color: "text-primary", icon: GraduationCap, iconColor: "text-primary", iconBg: "bg-primary/10 border-primary/20" },
             ].map((stat, i) => {
               const Icon = stat.icon;
               return (
@@ -101,8 +102,8 @@ const StudentsList = () => {
                       <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{stat.label}</p>
                       <p className={`text-4xl font-extrabold tracking-tight ${stat.color}`}>{stat.value}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform">
-                      <Icon className="h-5 w-5" />
+                    <div className={`w-10 h-10 rounded-xl ${stat.iconBg} border flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      <Icon className={`h-5 w-5 ${stat.iconColor}`} />
                     </div>
                   </div>
                 </div>
@@ -131,7 +132,7 @@ const StudentsList = () => {
               <div className="relative w-full sm:w-72 group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
-                  placeholder="Buscar por nombre o correo..."
+                  placeholder="Buscar estudiante..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className="pl-9 h-10 bg-black/40 border-white/10 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl shadow-inner"

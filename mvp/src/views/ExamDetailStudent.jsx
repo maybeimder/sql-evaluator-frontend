@@ -248,7 +248,8 @@ const ExamDetailStudent = () => {
                             <CardContent className="p-6 sm:p-8 relative z-10">
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
                                     <div>
-                                        <h1 className="text-3xl font-bold text-foreground mb-3">{exam.title}</h1>
+                                        <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Resultados del Examen</p>
+                                    <h1 className="text-3xl font-bold text-foreground mb-3">{exam.title}</h1>
                                         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                                             <span className="flex items-center gap-1.5"><Database className="h-4 w-4 opacity-70" /> Prof. {exam.professor}</span>
                                             <span className="hidden sm:inline text-white/20">•</span>
@@ -256,7 +257,7 @@ const ExamDetailStudent = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col items-center sm:items-end bg-black/20 p-4 rounded-2xl border border-white/5">
+                                    <div className="flex flex-col items-center sm:items-end bg-black/30 p-5 rounded-2xl border border-success/10 shadow-[0_0_20px_rgba(52,211,153,0.05)]">
                                         <div className="relative">
                                             <svg className="w-20 h-20 transform -rotate-90">
                                                 <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-muted/20" />

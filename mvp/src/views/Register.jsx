@@ -158,6 +158,13 @@ const Register = () => {
                         Completa el formulario para unirte a QueryLogic
                     </p>
 
+                    {/* Progress indicator */}
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                        <div className="h-1 w-16 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.5)]"></div>
+                        <div className="h-1 w-6 rounded-full bg-muted/30"></div>
+                        <div className="h-1 w-6 rounded-full bg-muted/30"></div>
+                    </div>
+
                     {/* Formulario */}
                     <form onSubmit={handleRegister} className="space-y-5">
                         <div className="space-y-2">
@@ -257,6 +264,7 @@ const Register = () => {
                                     <SelectItem value="2" >Profesor</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <p className="text-[10px] text-muted-foreground/60 mt-1">Podrás actualizar tu rol contactando al administrador</p>
                         </div>
 
                         {errorMsg && (
@@ -271,7 +279,12 @@ const Register = () => {
                             disabled={loading}
                             style={{ boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)' }}
                         >
-                            {loading ? "Registrando..." : "Registrarse"}
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    Registrando...
+                                </span>
+                            ) : "Registrarse"}
                         </Button>
                     </form>
 

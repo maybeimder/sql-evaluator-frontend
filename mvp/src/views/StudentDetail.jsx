@@ -96,6 +96,7 @@ const StudentDetail = () => {
                 
                 {/* Detalles */}
                 <div className="flex flex-col justify-center h-full pt-1">
+                  <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Perfil del Estudiante</p>
                   <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">{student.name}</h1>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-muted-foreground">
                     <div className="flex items-center justify-center sm:justify-start gap-2">

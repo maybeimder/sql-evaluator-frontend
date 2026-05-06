@@ -107,16 +107,29 @@ const DashboardTeacher = () => {
             <div className="container mx-auto px-4 sm:px-8 py-8">
 
                 {/* Título */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                     className="mb-8"
                 >
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">Panel del Profesor</h1>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        Gestiona tus exámenes, estudiantes y bases de datos
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Panel del Docente</p>
+                            <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                                {user?.FullName ? `Hola, ${user.FullName.split(' ')[0]}` : 'Panel del Profesor'}
+                            </h1>
+                            <p className="text-sm text-muted-foreground mt-1">Gestiona tus exámenes, estudiantes y bases de datos</p>
+                        </div>
+                        <Button
+                            onClick={() => navigate("/preview/create-exam")}
+                            size="sm"
+                            className="gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 self-start sm:self-auto"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Nuevo Examen
+                        </Button>
+                    </div>
                 </motion.div>
 
                 {/* Stats */}
@@ -202,9 +215,20 @@ const DashboardTeacher = () => {
                             </div>
                             <span className="text-sm font-bold text-foreground">Exámenes creados</span>
                         </div>
-                        <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50">
-                            {exams.length} examen{exams.length !== 1 ? "es" : ""}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-muted-foreground bg-muted/40 px-3 py-1 rounded-full border border-border/50">
+                                {exams.length} {exams.length !== 1 ? "exámenes" : "examen"}
+                            </span>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => navigate("/preview/create-exam")}
+                                className="h-7 px-2 text-xs text-primary hover:bg-primary/10 gap-1"
+                            >
+                                <Plus className="h-3 w-3" />
+                                Crear
+                            </Button>
+                        </div>
                     </div>
 
                     {errorExams && (

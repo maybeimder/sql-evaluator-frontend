@@ -327,7 +327,7 @@ const TeacherExamDetail = () => {
                                 </div>
                             </CardHeader>
 
-                            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 relative z-10 bg-black/10">
+                            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 relative z-10 bg-black/20">
                                 <div className="bg-background/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-center transition-colors hover:bg-background/60">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Activity className="h-3.5 w-3.5 text-muted-foreground" />

@@ -82,6 +82,7 @@ const TeacherDetail = () => {
                             
                             {/* Detalles */}
                             <div className="flex flex-col justify-center h-full pt-1">
+                                <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Perfil del Docente</p>
                                 <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">{teacher.name}</h1>
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-muted-foreground">
                                     <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -99,15 +100,15 @@ const TeacherDetail = () => {
                         {/* Estadísticas en Mini Tarjetas */}
                         <div className="flex flex-row gap-4 w-full lg:w-auto mt-4 lg:mt-0">
                             <div className="flex-1 lg:w-36 bg-black/20 border border-white/5 rounded-2xl p-5 text-center flex flex-col items-center justify-center hover:bg-black/30 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mb-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mb-3">
                                     <BookOpen className="h-4 w-4 text-primary" />
                                 </div>
                                 <p className="text-3xl font-black text-foreground mb-1 leading-none">{teacher.examsCreated}</p>
                                 <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Exámenes</p>
                             </div>
                             <div className="flex-1 lg:w-36 bg-black/20 border border-white/5 rounded-2xl p-5 text-center flex flex-col items-center justify-center hover:bg-black/30 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mb-3">
-                                    <Users className="h-4 w-4 text-primary" />
+                                <div className="w-8 h-8 rounded-full bg-success/10 border border-success/20 flex items-center justify-center mb-3">
+                                    <Users className="h-4 w-4 text-success" />
                                 </div>
                                 <p className="text-3xl font-black text-foreground mb-1 leading-none">{teacher.totalStudents}</p>
                                 <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Estudiantes</p>
@@ -125,7 +126,7 @@ const TeacherDetail = () => {
                             <CardTitle className="text-lg">Exámenes Creados</CardTitle>
                             <CardDescription className="mt-1">Historial de evaluaciones diseñadas por el docente</CardDescription>
                         </div>
-                        <span className="text-xs font-semibold text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5 hidden sm:inline-block">
+                        <span className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 hidden sm:inline-block">
                             {examsCreated.length} registrados
                         </span>
                     </CardHeader>

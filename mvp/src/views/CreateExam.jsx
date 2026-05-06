@@ -167,7 +167,8 @@ const CreateExam = () => {
                     animate="show"
                     className="mb-8"
                 >
-                    <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Crear Nuevo Examen</motion.h1>
+                    <motion.p variants={itemVariants} className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Nuevo Examen SQL</motion.p>
+                    <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Crear Evaluación</motion.h1>
                     <motion.p variants={itemVariants} className="text-sm text-muted-foreground max-w-xl leading-relaxed">
                         Define las preguntas, la configuración de tiempo y la base de datos a usar. Construye tu evaluación de manera secuencial y estructurada.
                     </motion.p>

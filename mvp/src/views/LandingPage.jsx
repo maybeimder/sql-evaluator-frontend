@@ -155,15 +155,30 @@ export const LandingPage = () => {
         </div>
       </section>
 
-      {/* Divider */}
-      <div className="border-t border-border mx-8" />
+      {/* Social Proof Strip */}
+      <div className="border-y border-border/40 bg-card/20 backdrop-blur-sm">
+        <div className="container mx-auto px-8 py-5">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
+            {[
+              { value: "200+", label: "Estudiantes activos" },
+              { value: "50+", label: "Exámenes creados" },
+              { value: "98%", label: "Tasa de finalización" },
+            ].map((stat, i) => (
+              <div key={i} className="text-center">
+                <p className="text-2xl font-extrabold text-primary tracking-tight">{stat.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Features */}
       <section className="container mx-auto px-8 py-16">
-        <p className="text-xs font-semibold text-primary text-center tracking-widest uppercase mb-3">
+        <p className="text-xs font-semibold text-primary text-center tracking-widest uppercase mb-4">
           Funcionalidades
         </p>
-        <h2 className="text-2xl font-bold text-foreground text-center mb-10">
+        <h2 className="text-3xl font-bold text-foreground text-center mb-12 tracking-tight">
           Todo lo que necesitas en un solo lugar
         </h2>
 
@@ -214,9 +229,17 @@ export const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-6 mt-4">
-        <div className="container mx-auto px-8 text-center text-sm text-muted-foreground">
-          <p>© 2026 QueryLogic — Universidad del Norte</p>
+      <footer className="border-t border-border/50 py-8 mt-8">
+        <div className="container mx-auto px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-primary rounded-md flex items-center justify-center">
+                <Database className="h-3 w-3 text-white" />
+              </div>
+              <span className="font-semibold text-foreground/80">QueryLogic</span>
+            </div>
+            <p>© 2026 QueryLogic — Universidad del Norte</p>
+          </div>
         </div>
       </footer>
 

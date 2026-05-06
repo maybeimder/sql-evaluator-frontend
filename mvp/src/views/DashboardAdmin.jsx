@@ -79,16 +79,23 @@ const DashboardAdmin = () => {
             </header>
 
             <div className="container mx-auto px-6 py-8">
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                     className="mb-8"
                 >
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 mb-2">
-                        Panel de Administración
-                    </h1>
-                    <p className="text-muted-foreground">Gestiona usuarios, permisos y configuración del sistema</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Panel de Control</p>
+                            <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1">Panel de Administración</h1>
+                            <p className="text-muted-foreground text-sm">Gestiona usuarios, permisos y configuración del sistema</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-card/60 border border-white/5 px-4 py-2 rounded-xl text-xs text-muted-foreground self-start sm:self-auto">
+                            <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                            Sistema operativo
+                        </div>
+                    </div>
                 </motion.div>
 
                 {/* Stats */}
@@ -111,6 +118,7 @@ const DashboardAdmin = () => {
                                 <div className="text-3xl font-bold text-foreground tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">
                                     245
                                 </div>
+                                <p className="text-xs text-muted-foreground mt-1 group-hover:text-foreground/60 transition-colors">+12 este mes</p>
                             </CardContent>
                         </Card>
                     </motion.div>
@@ -128,6 +136,7 @@ const DashboardAdmin = () => {
                                 <div className="text-3xl font-bold text-primary tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">
                                     198
                                 </div>
+                                <p className="text-xs text-muted-foreground mt-1 group-hover:text-primary/60 transition-colors">82% del total</p>
                             </CardContent>
                         </Card>
                     </motion.div>
@@ -145,6 +154,7 @@ const DashboardAdmin = () => {
                                 <div className="text-3xl font-bold text-success tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">
                                     45
                                 </div>
+                                <p className="text-xs text-muted-foreground mt-1 group-hover:text-success/60 transition-colors">18% del total</p>
                             </CardContent>
                         </Card>
                     </motion.div>
@@ -162,9 +172,31 @@ const DashboardAdmin = () => {
                                 <div className="text-3xl font-bold text-accent tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">
                                     32
                                 </div>
+                                <p className="text-xs text-muted-foreground mt-1 group-hover:text-accent/60 transition-colors">En este periodo</p>
                             </CardContent>
                         </Card>
                     </motion.div>
+                </motion.div>
+
+                {/* Atajos rápidos */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8"
+                >
+                    {[
+                        { label: "Ver Profesores", icon: ShieldAlert, color: "text-success", bg: "bg-success/10", border: "hover:border-success/30" },
+                        { label: "Ver Estudiantes", icon: Users, color: "text-primary", bg: "bg-primary/10", border: "hover:border-primary/30" },
+                        { label: "Crear Usuario", icon: Plus, color: "text-accent", bg: "bg-accent/10", border: "hover:border-accent/30" },
+                    ].map((item, i) => (
+                        <div key={i} className={`flex items-center gap-3 bg-card/30 border border-white/5 ${item.border} rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-all duration-200 group`}>
+                            <div className={`w-9 h-9 ${item.bg} rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200`}>
+                                <item.icon className={`h-4 w-4 ${item.color}`} />
+                            </div>
+                            <span className="text-sm font-semibold text-foreground/80 group-hover:text-foreground transition-colors">{item.label}</span>
+                        </div>
+                    ))}
                 </motion.div>
 
                 {/* User Management */}
