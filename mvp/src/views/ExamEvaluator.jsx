@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Database, Play, CheckCircle2, LogOut, Code2, Terminal, ChevronLeft, ChevronRight, FileText, Database as DbIcon, Info } from "lucide-react";
+import { Database, Play, CheckCircle2, LogOut, Code2, Terminal, ChevronLeft, ChevronRight, FileText, Database as DbIcon, Info, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -10,21 +10,46 @@ const ExamEvaluator = () => {
   const [sqlCode, setSqlCode] = useState("SELECT * FROM usuarios WHERE edad > 18;");
   const [output, setOutput] = useState("");
   const [isExecuting, setIsExecuting] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(60 * 60);
+  const [executionTime, setExecutionTime] = useState(null);
+  const timerRef = useRef(null);
 
   const mockQuestion = {
     title: "Consulta de Usuarios Mayores de Edad",
     description: "Escribe una consulta SQL que devuelva todos los usuarios mayores de 18 años. La tabla se llama 'usuarios' y tiene las columnas: id, nombre, email, edad.",
     expectedOutput: "3 registros encontrados",
     points: 10,
-    type: "SQL" // Puede ser "Pseudocódigo"
+    type: "SQL"
+  };
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setRemainingTime((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
   };
 
   const handleRunQuery = () => {
     setIsExecuting(true);
-    // Simulamos un pequeñísimo delay para dar sensación de procesamiento
+    const start = performance.now();
     setTimeout(() => {
         setOutput("✓ Consulta ejecutada correctamente\n\n3 registros encontrados:\n\nid | nombre        | email              | edad\n1  | Ana García    | ana@email.com      | 24\n2  | Luis Pérez    | luis@email.com     | 31\n5  | María López   | maria@email.com    | 22");
         setIsExecuting(false);
+        const end = performance.now();
+        const elapsed = end - start;
+        setExecutionTime(elapsed < 1000 ? `${elapsed.toFixed(0)}ms` : `${(elapsed / 1000).toFixed(2)}s`);
     }, 400);
   };
 
@@ -65,6 +90,10 @@ const ExamEvaluator = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-bold ${remainingTime <= 300 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-muted-foreground'}`}>
+              <Clock className="h-3 w-3" />
+              {formatTime(remainingTime)}
+            </div>
             <Button 
                 variant="ghost" 
                 size="sm" 
@@ -210,10 +239,6 @@ const ExamEvaluator = () => {
             
             {/* Editor Area */}
             <div className="flex-1 relative bg-[#090a10]">
-                {/* Line numbers fake aesthetic */}
-                <div className="absolute left-0 top-0 bottom-0 w-10 bg-[#0d0f1a] border-r border-white/5 flex flex-col text-right pr-2 py-4 text-[#4a5568] text-[13px] font-mono select-none">
-                    {[1,2,3,4,5,6,7,8,9,10].map(n => <div key={n} className="leading-relaxed opacity-50">{n}</div>)}
-                </div>
                 <Textarea
                     value={sqlCode}
                     onChange={(e) => setSqlCode(e.target.value)}
@@ -228,9 +253,16 @@ const ExamEvaluator = () => {
           {/* Bottom Half: Output Console */}
           <motion.div variants={itemVariants} className="h-1/3 min-h-[200px] flex flex-col bg-[#090a10]">
             {/* Console Toolbar */}
-            <div className="h-10 bg-[#111320] border-b border-white/5 flex items-center px-4 gap-2 flex-shrink-0">
-                <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consola de Salida</span>
+            <div className="h-10 bg-[#111320] border-b border-white/5 flex items-center justify-between px-4 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                    <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consola de Salida</span>
+                </div>
+                {executionTime !== null && (
+                    <span className="text-[10px] font-mono text-muted-foreground/70 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                        {executionTime}
+                    </span>
+                )}
             </div>
             
             {/* Console Output Area */}
