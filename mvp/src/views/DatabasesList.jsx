@@ -179,7 +179,7 @@ const DatabasesList = () => {
 
                     {/* Skeletons de Carga */}
                     {isLoading && (
-                        <motion.div variants={itemVariants} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {[1, 2, 3].map(i => (
                                 <div key={i} className="bg-card/20 border border-white/5 rounded-2xl p-6 h-64 animate-pulse flex flex-col">
                                     <div className="flex gap-4 mb-6">
@@ -204,7 +204,7 @@ const DatabasesList = () => {
 
                     {/* Grid de bases de datos */}
                     {!isLoading && databases.length > 0 && (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {databases.map(db => (
                                 <motion.div variants={itemVariants} key={db.id} className="group h-full">
                                     <div className="bg-card/40 backdrop-blur-md border border-white/5 hover:border-white/10 rounded-2xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1 h-full flex flex-col relative overflow-hidden">

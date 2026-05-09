@@ -86,20 +86,20 @@ export const LandingPage = () => {
 
       {/* Navbar */}
       <nav className="glass-panel sticky top-0 z-50 transition-all duration-300">
-        <div className="container mx-auto px-8 py-3 flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 group cursor-pointer" onClick={() => navigate("/")}>
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300 shadow-[0_0_10px_rgba(99,102,241,0.3)]">
               <Database className="h-4 w-4 text-white" />
             </div>
             <span className="text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300">QueryLogic</span>
           </div>
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-2 sm:gap-3 items-center">
             <Button variant="ghost" onClick={() => navigate("/login")}
-              className="hover:bg-white/5 hover:text-primary transition-colors">
+              className="hover:bg-white/5 hover:text-primary transition-colors text-sm px-3 sm:px-4">
               Iniciar Sesión
             </Button>
             <Button onClick={() => navigate("/register")}
-              className="hover:scale-105 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95 transition-all duration-200">
+              className="hover:scale-105 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95 transition-all duration-200 text-sm px-3 sm:px-4">
               Registrarse
             </Button>
           </div>
@@ -113,15 +113,15 @@ export const LandingPage = () => {
         {/* Glow de fondo */}
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/8 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 text-center px-8 max-w-4xl mx-auto">
+        <div className="relative z-10 text-center px-4 sm:px-8 max-w-4xl mx-auto">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 glass-card rounded-full px-4 py-1.5 mb-10 hover:border-primary/50 transition-colors cursor-default animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 glass-card rounded-full px-3 sm:px-4 py-1.5 mb-8 sm:mb-10 hover:border-primary/50 transition-colors cursor-default animate-fade-in-up">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.8)]"></div>
-            <span className="text-sm text-muted-foreground">Plataforma educativa para Uninorte</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Plataforma educativa para Uninorte</span>
           </div>
 
           {/* Título con gradiente */}
-          <h1 className="text-6xl md:text-7xl font-extrabold mb-6 leading-[1.1] tracking-tight animate-fade-in-up delay-100">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-5 sm:mb-6 leading-[1.1] tracking-tight animate-fade-in-up delay-100">
             <span className="text-foreground">Aprende y evalúa </span>
             <span
               style={{
@@ -137,18 +137,18 @@ export const LandingPage = () => {
             <span className="text-foreground"> de forma práctica</span>
           </h1>
 
-          <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed animate-fade-in-up delay-200">
+          <p className="text-base sm:text-lg text-muted-foreground mb-8 sm:mb-10 max-w-xl mx-auto leading-relaxed animate-fade-in-up delay-200">
             Escribe consultas SQL y pseudocódigo, recibe retroalimentación instantánea y haz
             seguimiento de tu progreso académico.
           </p>
 
-          <div className="flex gap-4 justify-center animate-fade-in-up delay-300">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-fade-in-up delay-300">
             <Button size="lg" onClick={() => navigate("/register")}
-              className="px-8 shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:scale-105 active:scale-95 transition-all duration-300">
+              className="px-8 shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:scale-105 active:scale-95 transition-all duration-300 min-h-[44px]">
               Comenzar ahora
             </Button>
             <Button size="lg" variant="outline" onClick={() => navigate("/login")}
-              className="hover:bg-white/5 hover:text-primary border-white/10 hover:border-primary/50 hover:scale-105 active:scale-95 transition-all duration-300 backdrop-blur-sm">
+              className="hover:bg-white/5 hover:text-primary border-white/10 hover:border-primary/50 hover:scale-105 active:scale-95 transition-all duration-300 backdrop-blur-sm min-h-[44px]">
               Ya tengo cuenta
             </Button>
           </div>
@@ -157,7 +157,7 @@ export const LandingPage = () => {
 
       {/* Social Proof Strip */}
       <div className="border-y border-border/40 bg-card/20 backdrop-blur-sm">
-        <div className="container mx-auto px-8 py-5">
+        <div className="container mx-auto px-4 sm:px-8 py-5">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
             {[
               { value: "200+", label: "Estudiantes activos" },
@@ -174,15 +174,15 @@ export const LandingPage = () => {
       </div>
 
       {/* Features */}
-      <section className="container mx-auto px-8 py-16">
+      <section className="container mx-auto px-4 sm:px-8 py-12 sm:py-16">
         <p className="text-xs font-semibold text-primary text-center tracking-widest uppercase mb-4">
           Funcionalidades
         </p>
-        <h2 className="text-3xl font-bold text-foreground text-center mb-12 tracking-tight">
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-8 sm:mb-12 tracking-tight">
           Todo lo que necesitas en un solo lugar
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Card 1 */}
           <div className="group relative glass-card p-6 rounded-xl hover:-translate-y-2 hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(99,102,241,0.2)] hover:border-primary/50 transition-all duration-300 ease-in-out animate-fade-in-up delay-100 overflow-hidden">
             {/* Hover gradient background effect */}
@@ -230,7 +230,7 @@ export const LandingPage = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/50 py-8 mt-8">
-        <div className="container mx-auto px-8">
+        <div className="container mx-auto px-4 sm:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 bg-primary rounded-md flex items-center justify-center">

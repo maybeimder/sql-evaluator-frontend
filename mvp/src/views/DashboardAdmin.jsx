@@ -55,7 +55,7 @@ const DashboardAdmin = () => {
         <div className="min-h-screen bg-background text-foreground">
             {/* Header */}
             <header className="border-b border-white/10 bg-card/60 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
-                <div className="container mx-auto px-6 py-3 flex items-center justify-between">
+                <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2 group cursor-pointer">
                         <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 group-hover:shadow-primary/40 transition-all duration-300">
                             <Database className="h-4 w-4 text-white group-hover:rotate-12 transition-transform duration-300" />
@@ -78,7 +78,7 @@ const DashboardAdmin = () => {
                 </div>
             </header>
 
-            <div className="container mx-auto px-6 py-8">
+            <div className="container mx-auto px-4 sm:px-6 py-8">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -103,7 +103,7 @@ const DashboardAdmin = () => {
                     variants={containerVariants}
                     initial="hidden"
                     animate="show"
-                    className="grid md:grid-cols-4 gap-6 mb-8"
+                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8"
                 >
                     <motion.div variants={itemVariants} className="h-full">
                         <Card className="bg-card/40 backdrop-blur-md border-white/5 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 ease-out group relative overflow-hidden h-full">
@@ -228,8 +228,8 @@ const DashboardAdmin = () => {
                             </div>
                         </CardHeader>
                         <CardContent className="pt-6">
-                            <div className="rounded-md border border-white/5 overflow-hidden">
-                                <Table>
+                            <div className="rounded-md border border-white/5 overflow-hidden overflow-x-auto">
+                                <Table className="min-w-[600px]">
                                     <TableHeader className="bg-white/[0.02]">
                                         <TableRow className="border-white/5 hover:bg-transparent">
                                             <TableHead className="font-medium text-foreground/70">Nombre</TableHead>

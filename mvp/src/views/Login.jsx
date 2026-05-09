@@ -117,7 +117,7 @@ const Login = ({ noPermission = false }) => {
                     backdropFilter: 'blur(20px)',
                     border: '1px solid rgba(99, 102, 241, 0.2)',
                     borderRadius: '16px',
-                    padding: '40px 36px',
+                    padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
                 }}>
 
                     {/* Ícono */}
@@ -237,22 +237,22 @@ const Login = ({ noPermission = false }) => {
                             Modo previsualización
                             <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block"></span>
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                             <button
                                 onClick={() => navigate("/preview/teacher")}
-                                className="flex-1 py-2 text-xs rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 hover:border-primary/40 transition-all duration-200 font-medium cursor-pointer"
+                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 hover:border-primary/40 transition-all duration-200 font-medium cursor-pointer min-h-[44px] sm:min-h-0"
                             >
                                 Ver Dashboard Profesor
                             </button>
                             <button
                                 onClick={() => navigate("/preview/student")}
-                                className="flex-1 py-2 text-xs rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/15 hover:border-success/40 transition-all duration-200 font-medium cursor-pointer"
+                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/15 hover:border-success/40 transition-all duration-200 font-medium cursor-pointer min-h-[44px] sm:min-h-0"
                             >
                                 Ver Dashboard Estudiante
                             </button>
                             <button
                                 onClick={() => navigate("/preview/admin")}
-                                className="flex-1 py-2 text-xs rounded-lg border border-accent/20 bg-accent/5 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all duration-200 font-medium cursor-pointer"
+                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-accent/20 bg-accent/5 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all duration-200 font-medium cursor-pointer min-h-[44px] sm:min-h-0"
                             >
                                 Ver Dashboard Admin
                             </button>

@@ -134,7 +134,7 @@ const Register = () => {
                     backdropFilter: 'blur(20px)',
                     border: '1px solid rgba(99, 102, 241, 0.2)',
                     borderRadius: '16px',
-                    padding: '40px 36px',
+                    padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
                 }}>
                     
                     {/* Ícono */}

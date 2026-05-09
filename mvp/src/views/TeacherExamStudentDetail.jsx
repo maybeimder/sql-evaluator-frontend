@@ -356,7 +356,7 @@ const TeacherExamStudentDetail = () => {
                             <Terminal className="h-4 w-4 text-muted-foreground" />
                             <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Comparación de Resultados</h4>
                         </div>
-                        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 bg-black/25 p-4 sm:p-5 rounded-xl border border-white/5">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 bg-black/25 p-4 sm:p-5 rounded-xl border border-white/5">
                             <div className="flex flex-col">
                                 <div className="flex items-center justify-between mb-3">
                                     <p className="text-xs font-semibold text-muted-foreground">

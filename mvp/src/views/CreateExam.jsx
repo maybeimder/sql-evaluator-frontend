@@ -229,7 +229,7 @@ const CreateExam = () => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 bg-black/10 p-5 rounded-2xl border border-white/5">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 bg-black/10 p-4 sm:p-5 rounded-2xl border border-white/5">
                                     {[
                                         { label: "Fecha de inicio", id: "date", type: "date", value: deadlineDate, setter: setDeadlineDate },
                                         { label: "Hora de inicio", id: "time", type: "time", value: deadlineTime, setter: setDeadlineTime },
@@ -436,7 +436,7 @@ const CreateExam = () => {
                     <motion.div variants={itemVariants} className="space-y-6">
 
                         {/* Panel de Resumen (Sticky) */}
-                        <div className="bg-card/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl sticky top-24">
+                        <div className="bg-card/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl xl:sticky xl:top-24">
                             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                                     <FileText className="h-5 w-5 text-primary" />

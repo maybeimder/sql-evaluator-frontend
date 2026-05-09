@@ -305,8 +305,8 @@ const TeacherExamDetail = () => {
 
                             <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 pb-6 relative z-10 border-b border-white/5">
                                 <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <CardTitle className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">{exam.Title}</CardTitle>
+                                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                                        <CardTitle className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">{exam.Title}</CardTitle>
                                         <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${examStatus === "Activo" ? "bg-success/10 text-success border-success/20" : "bg-muted/20 text-muted-foreground border-muted/30"}`}>
                                             {examStatus === "Activo" && <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>}
                                             {examStatus}
@@ -327,7 +327,7 @@ const TeacherExamDetail = () => {
                                 </div>
                             </CardHeader>
 
-                            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 relative z-10 bg-black/20">
+                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-4 sm:p-6 relative z-10 bg-black/20">
                                 <div className="bg-background/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-center transition-colors hover:bg-background/60">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Activity className="h-3.5 w-3.5 text-muted-foreground" />
