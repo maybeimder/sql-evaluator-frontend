@@ -54,6 +54,7 @@ export function AuthProvider({ children }) {
                 const data = await res.json();
                 login(data.accessToken, user);
             } catch {
+                sessionStorage.setItem("session_expired", "1");
                 logout();
             }
         }, 1000 * 60 * 10);

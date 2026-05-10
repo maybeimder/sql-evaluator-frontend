@@ -15,6 +15,7 @@ import TeacherDetail from './views/TeacherDetail';
 import CreateExam from './views/CreateExam';
 import ExamEvaluator from './views/ExamEvaluator';
 import NotFound from './views/NotFound';
+import Unauthorized from './views/Unathorized';
 import VerifyCode from './views/VerifyCode';
 
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -63,6 +64,7 @@ function App() {
             <Route path="/exams/:id" element={<ExamDetailStudent />} />
             <Route path="/teacher/exams/:id" element={<TeacherExamDetail />} />
             <Route path="/teacher/exams/:examId/students/:studentId" element={<TeacherExamStudentDetail />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

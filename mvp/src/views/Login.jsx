@@ -2,7 +2,7 @@ import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Database, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
 
@@ -71,32 +71,43 @@ const AnimatedBackground = () => (
 const Login = ({ noPermission = false }) => {
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [sessionExpired, setSessionExpired] = useState(() => {
+        const expired = sessionStorage.getItem("session_expired") === "1";
+        if (expired) sessionStorage.removeItem("session_expired");
+        return expired;
+    });
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setErrorMsg("");
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ email, password }),
-            });
+            const [res] = await Promise.all([
+                fetch(`${API_URL}/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ email, password }),
+                }),
+                new Promise((r) => setTimeout(r, 600)),
+            ]);
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.message || "Credenciales inválidas");
             if (!data.accessToken) throw new Error("No se recibió accessToken del servidor.");
             login(data.accessToken, data.user);
-            const role = data.user?.Roles || null;
-            if (role.includes(3)) navigate("/dashboard/student");
-            else if (role.includes(2)) navigate("/dashboard/teacher");
-            else if (role.includes(1)) navigate("/dashboard/admin");
-            else navigate("/dashboard/student");
+            const from = location.state?.from;
+            const roles = data.user?.Roles ?? [];
+            const dashboardByRole =
+                roles.includes(1) ? "/dashboard/admin" :
+                roles.includes(2) ? "/dashboard/teacher" :
+                "/dashboard/student";
+            navigate(from ?? dashboardByRole, { replace: true });
         } catch (err) {
             setErrorMsg(err.message || "Error inesperado");
         } finally {
@@ -151,6 +162,15 @@ const Login = ({ noPermission = false }) => {
                         </div>
                     )}
 
+                    {/* Alerta sesión expirada */}
+                    {sessionExpired && (
+                        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
+                            <p className="text-xs text-warning">
+                                Tu sesión expiró. Por favor vuelve a iniciar sesión.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Formulario */}
                     <form onSubmit={handleLogin} className="space-y-5">
                         <div className="space-y-2">
@@ -163,6 +183,7 @@ const Login = ({ noPermission = false }) => {
                                 placeholder="tu@uninorte.edu.co"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                disabled={loading}
                                 required
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
@@ -188,6 +209,7 @@ const Login = ({ noPermission = false }) => {
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
                                 required
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
@@ -206,10 +228,16 @@ const Login = ({ noPermission = false }) => {
 
                         <Button
                             type="submit"
-                            className="w-full mt-2"
+                            className="w-full mt-2 flex items-center justify-center gap-2"
                             disabled={loading}
                             style={{ boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)' }}
                         >
+                            {loading && (
+                                <svg className="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                </svg>
+                            )}
                             {loading ? "Ingresando..." : "Ingresar"}
                         </Button>
                     </form>
@@ -240,19 +268,19 @@ const Login = ({ noPermission = false }) => {
                         <div className="flex flex-col sm:flex-row gap-2">
                             <button
                                 onClick={() => navigate("/preview/teacher")}
-                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 hover:border-primary/40 transition-all duration-200 font-medium cursor-pointer min-h-[44px] sm:min-h-0"
+                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 hover:border-primary/40 transition-all duration-200 font-medium cursor-pointer min-h-11 sm:min-h-0"
                             >
                                 Ver Dashboard Profesor
                             </button>
                             <button
                                 onClick={() => navigate("/preview/student")}
-                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/15 hover:border-success/40 transition-all duration-200 font-medium cursor-pointer min-h-[44px] sm:min-h-0"
+                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/15 hover:border-success/40 transition-all duration-200 font-medium cursor-pointer min-h-11 sm:min-h-0"
                             >
                                 Ver Dashboard Estudiante
                             </button>
                             <button
                                 onClick={() => navigate("/preview/admin")}
-                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-accent/20 bg-accent/5 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all duration-200 font-medium cursor-pointer min-h-[44px] sm:min-h-0"
+                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-accent/20 bg-accent/5 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all duration-200 font-medium cursor-pointer min-h-11 sm:min-h-0"
                             >
                                 Ver Dashboard Admin
                             </button>
