@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
+import { useParams } from "react-router-dom";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const ExamEvaluator = () => {
     const navigate = useNavigate();
@@ -13,14 +16,36 @@ const ExamEvaluator = () => {
     const [remainingTime, setRemainingTime] = useState(60 * 60);
     const [executionTime, setExecutionTime] = useState(null);
     const timerRef = useRef(null);
+    const [mockQuestion,setMockQuestion] = useState(null);
+    const { examID } = useParams();
+    const [questions, setQuestions] = useState([]);
+    const [loading, setLoading]     = useState(true);
+    const token = localStorage.getItem("accessToken");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+    const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
+    const [comparisonResult, setComparisonResult] = useState(null);
 
-    const mockQuestion = {
-        title: "Consulta de Usuarios Mayores de Edad",
-        description: "Escribe una consulta SQL que devuelva todos los usuarios mayores de 18 años. La tabla se llama 'usuarios' y tiene las columnas: id, nombre, email, edad.",
-        expectedOutput: "3 registros encontrados",
-        points: 10,
-        type: "SQL"
-    };
+    useEffect(() => {
+        const token = localStorage.getItem("accessToken");
+        console.log(token);
+        fetch(`${API_URL}/exams/id/${examID}/questions`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(r => r.json())
+        .then(data => {
+            setQuestions(data);
+            setMockQuestion({
+                title: data.questions[0].QuestionTitle,
+                description: data.questions[0].QuestionText,
+                expectedOutput: data.questions[0].ExpectedOutput?.text ?? data.questions[0].ExpectedOutput,
+                points: data.questions[0].Value,
+                type: "SQL"
+            }); // Para esta demo, solo usamos la primera pregunta
+            setLoading(false);
+        });
+    }, [examID]);
 
     useEffect(() => {
         timerRef.current = setInterval(() => {
@@ -34,6 +59,8 @@ const ExamEvaluator = () => {
         }, 1000);
         return () => clearInterval(timerRef.current);
     }, []);
+
+    if (loading) return <p>Cargando preguntas...</p>;
 
     const formatTime = (seconds) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -70,13 +97,6 @@ const ExamEvaluator = () => {
         hidden: { opacity: 0, y: 15 },
         show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
     };
-
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
-    const [submitError, setSubmitError] = useState("");
-    const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
-
-    const [comparisonResult, setComparisonResult] = useState(null); // null | 'correct' | 'incorrect'
 
     const handleSubmitExam = async () => {
         if (!sqlCode.trim()) {

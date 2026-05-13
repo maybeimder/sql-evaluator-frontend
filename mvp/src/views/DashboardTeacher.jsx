@@ -88,7 +88,6 @@ const DashboardTeacher = () => {
                         </div>
                         <Button
                             onClick={() => navigate("/exam/create")}
-                            onClick={() => navigate("/exam/create")}
                             size="sm"
                             className="gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 self-start sm:self-auto"
                         >

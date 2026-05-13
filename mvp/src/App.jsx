@@ -13,6 +13,7 @@ import StudentDetail from './views/StudentDetail';
 import StudentsList from './views/StudentsList';
 import TeacherDetail from './views/TeacherDetail';
 import CreateExam from './views/CreateExam';
+import EditExam from './views/EditExam';
 import ExamEvaluator from './views/ExamEvaluator';
 import NotFound from './views/NotFound';
 import Unauthorized from './views/Unathorized';
@@ -46,7 +47,8 @@ function App() {
             <Route path="/students" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <StudentsList /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/teacher/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherDetail /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/exam/create" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <CreateExam /> </RoleRoute> </ProtectedRoute>} />
-            <Route path="/exam/take" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamEvaluator /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/exam/edit/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <EditExam /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/exam/take/:examID" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamEvaluator /> </RoleRoute> </ProtectedRoute>} />
 
             <Route path="/exams/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamDetailStudent /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/teacher/exams/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherExamDetail /> </RoleRoute> </ProtectedRoute>} />

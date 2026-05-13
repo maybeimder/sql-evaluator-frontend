@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Database, ArrowLeft, Search, UserPlus, FileText, Activity, GraduationCap, Clock, ChevronRight, UserX } from "lucide-react";
+import { Database, ArrowLeft, Search, UserPlus, FileText, Activity, GraduationCap, Clock, ChevronRight, UserX, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -316,7 +316,15 @@ const TeacherExamDetail = () => {
                                         {exam.Description || "Sin descripción proporcionada para esta evaluación."}
                                     </CardDescription>
                                 </div>
-                                <div className="flex-shrink-0">
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => navigate(`/exam/edit/${exam.ExamID || id}`)}
+                                        className="gap-2 border-white/10 hover:bg-white/5 hover:border-white/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-300"
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                        Editar Examen
+                                    </Button>
                                     <Button
                                         onClick={handleToggleAssignPanel}
                                         className="gap-2 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Clock, CheckCircle2, Play } from "lucide-react";
+import { Trophy, Clock, CheckCircle2, Play, Database, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import DashboardLayout from "../Components/DashboardLayout";
@@ -331,7 +331,7 @@ const DashboardStudent = () => {
                                                 </div>
                                             </div>
                                             <Button
-                                                onClick={() => navigate("/exam/take", { state: { examID: exam.ExamID } })}
+                                                onClick={() => navigate(`/exam/take/${exam.ExamID}`, { state: { examID: exam.ExamID } })}
                                                 className="w-full sm:w-auto relative overflow-hidden group/btn hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] active:scale-95 transition-all duration-200"
                                             >
                                                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -442,7 +442,7 @@ const DashboardStudent = () => {
                     </Card>
                 </motion.div>
             </div>
-        </DashboardLayout>
+    </div>
     );
 };
 

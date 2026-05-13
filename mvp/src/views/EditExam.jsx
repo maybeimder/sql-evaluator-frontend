@@ -1,18 +1,39 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Textarea } from "@/Components/ui/textarea";
-import { Database, Plus, Trash2, Save, X, Clock, FileText, Settings, LayoutList, GripVertical } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Database, Plus, Trash2, Save, X, Clock, FileText, Settings, LayoutList, GripVertical, ArrowLeft } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const CreateExam = () => {
+const parseISOToForm = (isoString) => {
+    if (!isoString) return { date: "", time: "" };
+    const d = new Date(isoString);
+    const date = d.toISOString().split("T")[0];
+    const time = d.toTimeString().slice(0, 5);
+    return { date, time };
+};
+
+const EditExam = () => {
+    const { id } = useParams();
     const { accessToken } = useAuth();
     const navigate = useNavigate();
+
+    const [examType, setExamType] = useState("sql");
+    const handleExamTypeChange = (type) => {
+        setExamType(type);
+        if (type === "pseudocode") setDatabaseID("");
+    };
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [questionErrors, setQuestionErrors] = useState({});
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
     const [examTitle, setExamTitle] = useState("");
     const [examDescription, setExamDescription] = useState("");
@@ -21,73 +42,78 @@ const CreateExam = () => {
     const [durationMinutes, setDurationMinutes] = useState("60");
     const [databaseID, setDatabaseID] = useState("");
     const [allowsRejoin, setAllowsRejoin] = useState(false);
-    const [examType, setExamType] = useState("sql");
-    const handleExamTypeChange = (type) => {
-        setExamType(type);
-        if (type === "pseudocode") setDatabaseID("");
-    };
-    const [questions, setQuestions] = useState([{
-        id: 1, title: "", description: "",
-        solutionExample: "", expectedOutput: "", points: 10,
-    }]);
-    const [saving, setSaving] = useState(false);
-    const [errorMsg, setErrorMsg] = useState("");
-    const [regenerating, setRegenerating] = useState({});
-    const [fieldErrors, setFieldErrors] = useState({});
-    const [questionErrors, setQuestionErrors] = useState({});
-    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [questions, setQuestions] = useState([]);
 
-    const [selectedGroup, setSelectedGroup] = useState("");
-    const mockGroups = [
-        { id: "g1", name: "Bases de Datos I — Grupo 1" },
-        { id: "g2", name: "Bases de Datos I — Grupo 2" },
-        { id: "g3", name: "Bases de Datos II — Grupo 1" },
-        { id: "g4", name: "Programación Avanzada — Grupo 1" },
-    ];
+    useEffect(() => {
+        const fetchExam = async () => {
+            if (!accessToken || !id) return;
+            try {
+                setLoading(true);
+                const res = await fetch(`${API_URL}/exams/id/${id}`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    credentials: "include",
+                });
+                if (!res.ok) throw new Error("No se pudo cargar el examen");
+                const data = await res.json();
+                const exam = data.exam;
 
-    const addQuestion = () => {
-        setQuestions(prev => [...prev, {
-            id: Date.now(),
-            title: "", description: "",
-            solutionExample: "", expectedOutput: "", points: 10,
-        }]);
-    };
+                setExamTitle(exam.Title || "");
+                setExamDescription(exam.Description || "");
+                setDurationMinutes(exam.Duration ? String(exam.Duration) : "60");
+                setDatabaseID(exam.DatabaseID || "");
+                setAllowsRejoin(exam.AllowsRejoin || false);
+                setExamType(exam.Type || "sql");
 
-    const removeQuestion = (id) => {
-        setQuestions(prev => prev.filter(q => q.id !== id));
-    };
+                const { date, time } = parseISOToForm(exam.StartTime);
+                setDeadlineDate(date);
+                setDeadlineTime(time);
 
-    const updateQuestionField = (id, field, value) => {
-        setQuestions(prev => prev.map(q =>
-            q.id === id ? { ...q, [field]: field === "points" ? Number(value) || 0 : value } : q
-        ));
-    };
+                const loadedQuestions = Array.isArray(exam.Questions) && exam.Questions.length > 0
+                    ? exam.Questions.map((q, i) => ({
+                        id: q.QuestionID || Date.now() + i,
+                        title: q.QuestionTitle || "",
+                        description: q.QuestionText || "",
+                        solutionExample: q.SolutionExample || "",
+                        expectedOutput: q.ExpectedOutput?.text || q.ExpectedOutput || "",
+                        points: q.Value || 10,
+                    }))
+                    : [{ id: Date.now(), title: "", description: "", solutionExample: "", expectedOutput: "", points: 10 }];
+
+                setQuestions(loadedQuestions);
+            } catch (err) {
+                setErrorMsg(err.message || "Error al cargar el examen");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchExam();
+    }, [accessToken, id]);
 
     const buildStartTimeISO = () => {
         if (!deadlineDate || !deadlineTime) return null;
         return new Date(`${deadlineDate}T${deadlineTime}:00`).toISOString();
     };
 
-    const validateQuestions = (questions) => {
-        for (let i = 0; i < questions.length; i++) {
-            const q = questions[i];
-            const idx = i + 1;
-            if (!q.title.trim()) return { valid: false, error: `La pregunta ${idx} necesita un título.` };
-            if (!q.description.trim()) return { valid: false, error: `La pregunta ${idx} necesita un enunciado.` };
-            if (!q.solutionExample.trim()) return { valid: false, error: `La pregunta ${idx} necesita la consulta SQL solución.` };
-            if (!q.expectedOutput.trim()) return { valid: false, error: `La pregunta ${idx} necesita la salida esperada.` };
-            if (!q.points || q.points <= 0) return { valid: false, error: `La pregunta ${idx} necesita puntos mayores a 0.` };
-        }
-        return { valid: true, error: null };
+    const addQuestion = () => {
+        setQuestions(prev => [...prev, {
+            id: Date.now(),
+            title: "", description: "",
+            solutionExample: "", expectedOutput: "", points: 10, type: "sql",
+        }]);
     };
 
-    const handleSaveExam = async () => {
-        console.log("=== INTENTANDO CREAR EXAMEN ===");
-        console.log("API_URL:", API_URL);
-        console.log("accessToken:", accessToken);
+    const removeQuestion = (qid) => {
+        setQuestions(prev => prev.filter(q => q.id !== qid));
+    };
 
+    const updateQuestionField = (qid, field, value) => {
+        setQuestions(prev => prev.map(q =>
+            q.id === qid ? { ...q, [field]: field === "points" ? Number(value) || 0 : value } : q
+        ));
+    };
+
+    const handleSave = async () => {
         setErrorMsg("");
-        if (!accessToken) { setErrorMsg("No hay sesión activa."); navigate("/login"); return; }
 
         const fErrors = {};
         if (!examTitle.trim()) fErrors.examTitle = "El título es obligatorio";
@@ -96,7 +122,7 @@ const CreateExam = () => {
         if (!durationMinutes || Number(durationMinutes) <= 0) fErrors.durationMinutes = "Debe ser mayor a 0";
 
         const qErrors = {};
-        questions.forEach((q, i) => {
+        questions.forEach((q) => {
             const e = {};
             if (!q.title.trim()) e.title = "Obligatorio";
             if (!q.description.trim()) e.description = "Obligatorio";
@@ -122,7 +148,6 @@ const CreateExam = () => {
             Duration: Number(durationMinutes),
             DatabaseID: databaseID || null,
             AllowsRejoin: allowsRejoin,
-            GroupID: selectedGroup || null,
             questions: questions.map(q => ({
                 QuestionTitle: q.title,
                 QuestionText: q.description,
@@ -132,56 +157,24 @@ const CreateExam = () => {
             })),
         };
 
-        console.log("[CreateExam] Payload:", JSON.stringify(payload, null, 2));
-
         try {
             setSaving(true);
-            const res = await fetch(`${API_URL}/exams`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+            const res = await fetch(`${API_URL}/exams/${id}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
                 credentials: "include",
                 body: JSON.stringify(payload),
             });
             const data = await res.json().catch(() => ({}));
-            console.log("[CreateExam] Response status:", res.status);
-            console.log("[CreateExam] Response JSON:", data);
-            if (!res.ok) throw new Error(data.message || `Error al crear el examen (${res.status})`);
-            navigate("/dashboard/teacher");
+            if (!res.ok) throw new Error(data.message || `Error al actualizar el examen (${res.status})`);
+            navigate(`/teacher/exams/${id}`);
         } catch (err) {
-            setErrorMsg(err.message || "Error inesperado al guardar el examen");
+            setErrorMsg(err.message || "Error inesperado al guardar");
         } finally {
             setSaving(false);
-        }
-    };
-
-    const handleRegenerate = async (questionId, type) => {
-        setRegenerating(prev => ({ ...prev, [`${questionId}-${type}`]: true }));
-        try {
-            const res = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-20250514",
-                    max_tokens: 1000,
-                    messages: [{
-                        role: "user",
-                        content: type === "enunciado"
-                            ? `Genera un enunciado claro y conciso para una pregunta de examen SQL sobre: "${examTitle}". Solo devuelve el enunciado, sin explicaciones adicionales.`
-                            : `Genera la salida esperada en formato de tabla para este enunciado SQL: "${questions.find(q => q.id === questionId)?.description}". Formato: columnas separadas por | y filas en líneas separadas. Solo devuelve la tabla, sin explicaciones.`
-                    }]
-                })
-            });
-            const data = await res.json();
-            const generated = data.content?.[0]?.text || "";
-            if (type === "enunciado") {
-                updateQuestionField(questionId, "description", generated);
-            } else {
-                updateQuestionField(questionId, "expectedOutput", generated);
-            }
-        } catch (err) {
-            console.error("Error regenerando:", err);
-        } finally {
-            setRegenerating(prev => ({ ...prev, [`${questionId}-${type}`]: false }));
         }
     };
 
@@ -196,6 +189,17 @@ const CreateExam = () => {
         hidden: { opacity: 0, y: 20 },
         show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                    <p className="text-sm text-muted-foreground animate-pulse">Cargando examen...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -214,20 +218,20 @@ const CreateExam = () => {
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate("/dashboard/teacher")}
+                            onClick={() => navigate(`/teacher/exams/${id}`)}
                             className="gap-2 text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200 hidden sm:flex"
                         >
-                            <X className="h-4 w-4" />
+                            <ArrowLeft className="h-4 w-4" />
                             Cancelar
                         </Button>
                         <Button
                             size="sm"
-                            onClick={handleSaveExam}
+                            onClick={handleSave}
                             disabled={saving}
                             className="gap-2 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
                         >
                             <Save className="h-4 w-4" />
-                            {saving ? "Guardando..." : "Guardar Examen"}
+                            {saving ? "Guardando..." : "Guardar Cambios"}
                         </Button>
                     </div>
                 </div>
@@ -235,10 +239,10 @@ const CreateExam = () => {
 
             <div className="container mx-auto px-4 sm:px-8 py-10">
                 <motion.div variants={containerVariants} initial="hidden" animate="show" className="mb-8">
-                    <motion.p variants={itemVariants} className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Nuevo Examen SQL</motion.p>
-                    <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Crear Evaluación</motion.h1>
+                    <motion.p variants={itemVariants} className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Editar Examen SQL</motion.p>
+                    <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Modificar Evaluación</motion.h1>
                     <motion.p variants={itemVariants} className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                        Define las preguntas, la configuración de tiempo y la base de datos a usar.
+                        Actualiza el título, preguntas, tiempo y configuración del examen.
                     </motion.p>
                 </motion.div>
 
@@ -251,14 +255,13 @@ const CreateExam = () => {
                     </motion.div>
                 )}
 
-                {/* Layout 2 columnas */}
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8">
 
                     {/* Columna izquierda */}
                     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
 
                         {/* Configuración General */}
-                        <motion.div variants={itemVariants} className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden group">
+                        <motion.div variants={itemVariants} className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                             <div className="flex items-center gap-3 mb-6 relative z-10">
@@ -278,7 +281,7 @@ const CreateExam = () => {
                                         placeholder="ej: SQL Básico — Consultas SELECT y WHERE"
                                         value={examTitle}
                                         onChange={e => { setExamTitle(e.target.value); setFieldErrors(f => ({ ...f, examTitle: undefined })); }}
-                                        className={`h-11 bg-black/20 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl ${fieldErrors.examTitle ? 'border-destructive/70' : 'border-white/10 focus-visible:border-primary/50'}`}
+                                        className={`h-11 bg-black/20 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl ${fieldErrors.examTitle ? "border-destructive/70" : "border-white/10 focus-visible:border-primary/50"}`}
                                     />
                                     {fieldErrors.examTitle && <p className="text-xs text-destructive ml-1">{fieldErrors.examTitle}</p>}
                                 </div>
@@ -307,7 +310,7 @@ const CreateExam = () => {
                                                 min={field.min}
                                                 value={field.value}
                                                 onChange={e => { const val = field.transform ? field.transform(e.target.value) : e.target.value; field.setter(val); setFieldErrors(f => ({ ...f, [field.errorKey]: undefined })); }}
-                                                className={`h-10 bg-black/20 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-lg text-sm ${fieldErrors[field.errorKey] ? 'border-destructive/70' : 'border-white/10 focus-visible:border-primary/50'}`}
+                                                className={`h-10 bg-black/20 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-lg text-sm ${fieldErrors[field.errorKey] ? "border-destructive/70" : "border-white/10 focus-visible:border-primary/50"}`}
                                             />
                                             {fieldErrors[field.errorKey] && <p className="text-xs text-destructive ml-1">{fieldErrors[field.errorKey]}</p>}
                                         </div>
@@ -368,7 +371,7 @@ const CreateExam = () => {
                             </div>
                         </motion.div>
 
-                        {/* Título Sección Preguntas */}
+                        {/* Sección Preguntas */}
                         <motion.div variants={itemVariants} className="flex items-center justify-between pt-4 pb-2 border-b border-white/10">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -377,7 +380,7 @@ const CreateExam = () => {
                                 <h2 className="text-lg font-bold text-foreground">Banco de Preguntas</h2>
                             </div>
                             <span className="text-xs font-semibold text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                                {questions.length} {questions.length === 1 ? 'Pregunta' : 'Preguntas'}
+                                {questions.length} {questions.length === 1 ? "Pregunta" : "Preguntas"}
                             </span>
                         </motion.div>
 
@@ -390,13 +393,12 @@ const CreateExam = () => {
                                         layout
                                         initial={{ opacity: 0, y: 20, scale: 0.98 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0, overflow: 'hidden' }}
+                                        exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0, overflow: "hidden" }}
                                         transition={{ duration: 0.3, ease: "easeInOut" }}
                                         className="bg-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-6 sm:p-8 relative group hover:border-white/10 transition-colors"
                                     >
                                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-primary/50 to-primary/10 rounded-l-3xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
-                                        {/* Header pregunta */}
                                         <div className="flex items-center justify-between mb-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="cursor-grab active:cursor-grabbing p-1.5 text-muted-foreground hover:bg-white/5 rounded-md transition-colors">
@@ -419,10 +421,7 @@ const CreateExam = () => {
                                             )}
                                         </div>
 
-                                        {/* Campos de la pregunta */}
                                         <div className="space-y-5 ml-2 sm:ml-6">
-
-                                            {/* Título y puntos */}
                                             <div className="grid grid-cols-1 md:grid-cols-[1fr_120px] gap-5">
                                                 <div className="space-y-2">
                                                     <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Título de la pregunta</Label>
@@ -430,7 +429,7 @@ const CreateExam = () => {
                                                         placeholder="ej: Filtro de clientes por país activo"
                                                         value={question.title}
                                                         onChange={e => { updateQuestionField(question.id, "title", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], title: undefined } })); }}
-                                                        className={`h-10 bg-black/20 focus-visible:border-primary/50 transition-all rounded-lg ${questionErrors[question.id]?.title ? 'border-destructive/70' : 'border-white/10'}`}
+                                                        className={`h-10 bg-black/20 focus-visible:border-primary/50 transition-all rounded-lg ${questionErrors[question.id]?.title ? "border-destructive/70" : "border-white/10"}`}
                                                     />
                                                     {questionErrors[question.id]?.title && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].title}</p>}
                                                 </div>
@@ -441,45 +440,25 @@ const CreateExam = () => {
                                                         min="1"
                                                         value={question.points}
                                                         onChange={e => { updateQuestionField(question.id, "points", Math.max(1, Number(e.target.value) || 1)); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], points: undefined } })); }}
-                                                        className={`h-10 bg-primary/5 text-primary font-bold text-center focus-visible:border-primary/50 transition-all rounded-lg ${questionErrors[question.id]?.points ? 'border-destructive/70' : 'border-primary/20'}`}
+                                                        className={`h-10 bg-primary/5 text-primary font-bold text-center focus-visible:border-primary/50 transition-all rounded-lg ${questionErrors[question.id]?.points ? "border-destructive/70" : "border-primary/20"}`}
                                                     />
                                                     {questionErrors[question.id]?.points && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].points}</p>}
                                                 </div>
                                             </div>
 
-                                            {/* Enunciado con botón regenerar */}
                                             <div className="space-y-2">
-                                                <div className="flex items-center justify-between ml-1">
-                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                        Enunciado / Contexto
-                                                    </Label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRegenerate(question.id, "enunciado")}
-                                                        disabled={regenerating[`${question.id}-enunciado`]}
-                                                        className="flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:underline disabled:opacity-50 transition-all"
-                                                    >
-                                                        {regenerating[`${question.id}-enunciado`] ? (
-                                                            <><div className="w-3 h-3 border border-primary/30 border-t-primary rounded-full animate-spin" />Generando...</>
-                                                        ) : (
-                                                            <>✦ Regenerar enunciado</>
-                                                        )}
-                                                    </button>
-                                                </div>
+                                                <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Enunciado / Contexto</Label>
                                                 <Textarea
                                                     placeholder="Describe la tarea lógica o la consulta que debe resolverse..."
                                                     rows={2}
                                                     value={question.description}
                                                     onChange={e => { updateQuestionField(question.id, "description", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], description: undefined } })); }}
-                                                    className={`resize-none bg-black/20 focus-visible:border-primary/50 transition-all rounded-lg p-3 ${questionErrors[question.id]?.description ? 'border-destructive/70' : 'border-white/10'}`}
+                                                    className={`resize-none bg-black/20 focus-visible:border-primary/50 transition-all rounded-lg p-3 ${questionErrors[question.id]?.description ? "border-destructive/70" : "border-white/10"}`}
                                                 />
                                                 {questionErrors[question.id]?.description && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].description}</p>}
                                             </div>
 
-                                            {/* Bloques de código */}
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
-
-                                                {/* SQL solución */}
                                                 <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className="flex gap-1.5 mr-2">
@@ -487,9 +466,7 @@ const CreateExam = () => {
                                                             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
                                                             <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
                                                         </div>
-                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                            {examType === "sql" ? "Solución Esperada (SQL)" : "Solución Esperada (Pseudocódigo)"}
-                                                        </Label>
+                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{examType === "sql" ? "Solución Esperada (SQL)" : "Solución Esperada (Pseudocódigo)"}</Label>
                                                     </div>
                                                     <Textarea
                                                         placeholder={examType === "sql" ? "SELECT * FROM tabla WHERE condicion = 1;" : "INICIO\n  SI condicion ENTONCES\n    RETORNAR valor\n  FIN SI\nFIN"}
@@ -497,36 +474,19 @@ const CreateExam = () => {
                                                         value={question.solutionExample}
                                                         onChange={e => { updateQuestionField(question.id, "solutionExample", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], solutionExample: undefined } })); }}
                                                         className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: '#a78bfa', lineHeight: '1.6' }}
+                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: "#a78bfa", lineHeight: "1.6" }}
                                                     />
                                                     {questionErrors[question.id]?.solutionExample && <p className="text-xs text-destructive">{questionErrors[question.id].solutionExample}</p>}
                                                 </div>
 
-                                                {/* Salida esperada con botón regenerar */}
                                                 <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="flex gap-1.5 mr-2">
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            </div>
-                                                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                                Salida en Pantalla (Tabla)
-                                                            </Label>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="flex gap-1.5 mr-2">
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRegenerate(question.id, "casos")}
-                                                            disabled={regenerating[`${question.id}-casos`]}
-                                                            className="flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:underline disabled:opacity-50 transition-all"
-                                                        >
-                                                            {regenerating[`${question.id}-casos`] ? (
-                                                                <><div className="w-3 h-3 border border-primary/30 border-t-primary rounded-full animate-spin" />Generando...</>
-                                                            ) : (
-                                                                <>✦ Regenerar casos</>
-                                                            )}
-                                                        </button>
+                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Salida en Pantalla (Tabla)</Label>
                                                     </div>
                                                     <Textarea
                                                         placeholder="Columna1 | Columna2&#10;Dato1    | Dato2"
@@ -534,18 +494,16 @@ const CreateExam = () => {
                                                         value={question.expectedOutput}
                                                         onChange={e => { updateQuestionField(question.id, "expectedOutput", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], expectedOutput: undefined } })); }}
                                                         className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: '#34d399', lineHeight: '1.6' }}
+                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: "#34d399", lineHeight: "1.6" }}
                                                     />
                                                     {questionErrors[question.id]?.expectedOutput && <p className="text-xs text-destructive">{questionErrors[question.id].expectedOutput}</p>}
                                                 </div>
-
                                             </div>
                                         </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
 
-                            {/* Botón agregar pregunta */}
                             <motion.div layout>
                                 <button
                                     onClick={addQuestion}
@@ -558,7 +516,6 @@ const CreateExam = () => {
                                 </button>
                             </motion.div>
                         </div>
-
                     </motion.div>
 
                     {/* Columna derecha (Sidebar) */}
@@ -584,7 +541,7 @@ const CreateExam = () => {
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-center justify-between bg-black/20 p-3.5 rounded-xl border border-white/5">
                                         <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
-                                        <span className={`text-sm font-black ${item.highlight ? 'text-primary' : 'text-foreground'}`}>
+                                        <span className={`text-sm font-black ${item.highlight ? "text-primary" : "text-foreground"}`}>
                                             {item.value}
                                         </span>
                                     </div>
@@ -592,12 +549,12 @@ const CreateExam = () => {
                             </div>
 
                             <Button
-                                onClick={handleSaveExam}
+                                onClick={handleSave}
                                 disabled={saving}
                                 className="w-full mt-6 gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 h-11 text-sm font-bold tracking-wide"
                             >
                                 <Save className="h-4 w-4" />
-                                {saving ? "Procesando..." : "Finalizar y Guardar"}
+                                {saving ? "Procesando..." : "Guardar Cambios"}
                             </Button>
                         </div>
 
@@ -611,7 +568,7 @@ const CreateExam = () => {
                                 <div className="flex items-center gap-3.5 p-3.5 rounded-xl"
                                     style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.5)" }}>
                                     <div className="relative w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                                        style={{ borderColor: "#6366f1", border: "1px solid #6366f1" }}>
+                                        style={{ border: "1px solid #6366f1" }}>
                                         <div className="w-2 h-2 rounded-full bg-primary" />
                                     </div>
                                     <div>
@@ -630,20 +587,20 @@ const CreateExam = () => {
                                         <button
                                             key={db.id}
                                             onClick={() => setDatabaseID(db.id)}
-                                            className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
+                                            className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200"
                                             style={{
-                                                background: databaseID === db.id ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
-                                                border: databaseID === db.id ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.05)',
+                                                background: databaseID === db.id ? "rgba(99,102,241,0.1)" : "rgba(0,0,0,0.2)",
+                                                border: databaseID === db.id ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.05)",
                                             }}
                                         >
                                             <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0"
-                                                style={{ borderColor: databaseID === db.id ? '#6366f1' : '' }}>
+                                                style={{ borderColor: databaseID === db.id ? "#6366f1" : "" }}>
                                                 {databaseID === db.id && (
-                                                    <motion.div layoutId="dbIndicator" className="w-2 h-2 rounded-full bg-primary" />
+                                                    <div className="w-2 h-2 rounded-full bg-primary" />
                                                 )}
                                             </div>
                                             <div>
-                                                <p className={`text-sm font-bold transition-colors ${databaseID === db.id ? 'text-primary' : 'text-foreground group-hover:text-primary/70'}`}>
+                                                <p className={`text-sm font-bold transition-colors ${databaseID === db.id ? "text-primary" : "text-foreground"}`}>
                                                     {db.label}
                                                 </p>
                                                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{db.sub}</p>
@@ -653,51 +610,7 @@ const CreateExam = () => {
                                 </div>
                             )}
                         </div>
-
-                        {/* Selector de Grupo */}
-                        <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6">
-                            <div className="flex items-center gap-2 mb-5">
-                                <span className="text-sm">👥</span>
-                                <span className="text-sm font-bold text-foreground">Curso o Grupo</span>
-                            </div>
-                            <div className="space-y-2.5">
-                                {mockGroups.map(group => (
-                                    <button
-                                        key={group.id}
-                                        type="button"
-                                        onClick={() => setSelectedGroup(
-                                            selectedGroup === group.id ? "" : group.id
-                                        )}
-                                        className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
-                                        style={{
-                                            background: selectedGroup === group.id ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
-                                            border: selectedGroup === group.id
-                                                ? '1px solid rgba(99,102,241,0.5)'
-                                                : '1px solid rgba(255,255,255,0.05)',
-                                        }}
-                                    >
-                                        <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0"
-                                            style={{ borderColor: selectedGroup === group.id ? '#6366f1' : '' }}>
-                                            {selectedGroup === group.id && (
-                                                <div className="w-2 h-2 rounded-full bg-primary" />
-                                            )}
-                                        </div>
-                                        <p className="text-xs font-medium truncate"
-                                            style={{ color: selectedGroup === group.id ? '#6366f1' : '#a5aad4' }}>
-                                            {group.name}
-                                        </p>
-                                    </button>
-                                ))}
-                            </div>
-                            {selectedGroup && (
-                                <p className="text-xs text-primary mt-3 ml-1">
-                                    ✓ {mockGroups.find(g => g.id === selectedGroup)?.name}
-                                </p>
-                            )}
-                        </div>
-
                     </motion.div>
-
                 </div>
             </div>
         </div>
@@ -748,4 +661,4 @@ const CreateExam = () => {
     );
 };
 
-export default CreateExam;
+export default EditExam;
