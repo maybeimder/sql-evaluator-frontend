@@ -148,7 +148,7 @@ const DashboardStudent = () => {
                     </p>
                     <div className="flex flex-wrap gap-2">
                         <Button
-                            onClick={() => navigate("/exam/take")}
+                            onClick={() => navigate("/exam/take/demo", { state: { examID: null } })}
                             size="sm"
                             variant="outline"
                             className="text-xs border-primary/20 text-primary hover:bg-primary/10 gap-1.5 h-8"
@@ -442,7 +442,7 @@ const DashboardStudent = () => {
                     </Card>
                 </motion.div>
             </div>
-    </div>
+        </div>
     );
 };
 

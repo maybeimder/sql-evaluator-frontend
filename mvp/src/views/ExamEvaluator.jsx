@@ -5,10 +5,18 @@ import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useAuth } from "../AuthContext";
+
 const ExamEvaluator = () => {
     const navigate = useNavigate();
     const { state } = useLocation();
     const examID = state?.examID ?? null;
+    const API_URL = import.meta.env.VITE_API_URL;
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+    const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
+    const [comparisonResult, setComparisonResult] = useState(null);
     const { accessToken } = useAuth();
     const [sqlCode, setSqlCode] = useState("SELECT * FROM usuarios WHERE edad > 18;");
     const [output, setOutput] = useState("");
@@ -25,18 +33,44 @@ const ExamEvaluator = () => {
         type: "SQL"
     };
 
+    const [aiGeneratedFields, setAiGeneratedFields] = useState({});
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [questionErrors, setQuestionErrors] = useState({});
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [question, setQuestion] = useState(mockQuestion);
+
     useEffect(() => {
-        timerRef.current = setInterval(() => {
-            setRemainingTime((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    return 0;
+        if (!examID || !accessToken) return;
+        const fetchExam = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch(`${API_URL}/exams/id/${examID}`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    credentials: "include",
+                });
+                if (!res.ok) throw new Error("Error al cargar el examen");
+                const data = await res.json();
+
+                const q = data.exam?.Questions?.[0];
+                if (q) {
+                    setQuestion({
+                        title: q.QuestionTitle || mockQuestion.title,
+                        description: q.QuestionText || mockQuestion.description,
+                        expectedOutput: q.ExpectedOutput?.text || mockQuestion.expectedOutput,
+                        points: q.Value || mockQuestion.points,
+                        type: "SQL",
+                    });
                 }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timerRef.current);
-    }, []);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchExam();
+    }, [examID, accessToken]);
 
     const formatTime = (seconds) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, "0");
