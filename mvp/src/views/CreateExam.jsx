@@ -28,6 +28,7 @@ const CreateExam = () => {
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [regenerating, setRegenerating] = useState({});
+    const [aiGeneratedFields, setAiGeneratedFields] = useState({});
 
     const [selectedGroup, setSelectedGroup] = useState("");
     const mockGroups = [
@@ -148,8 +149,12 @@ const CreateExam = () => {
             const generated = data.content?.[0]?.text || "";
             if (type === "enunciado") {
                 updateQuestionField(questionId, "description", generated);
+                setAiGeneratedFields(prev => ({ ...prev, [`${questionId}-${type}`]: true }));
+                setTimeout(() => { setAiGeneratedFields(prev => ({ ...prev, [`${questionId}-${type}`]: false })); }, 3000);
             } else {
                 updateQuestionField(questionId, "expectedOutput", generated);
+                setAiGeneratedFields(prev => ({ ...prev, [`${questionId}-${type}`]: true }));
+                setTimeout(() => { setAiGeneratedFields(prev => ({ ...prev, [`${questionId}-${type}`]: false })); }, 3000);
             }
         } catch (err) {
             console.error("Error regenerando:", err);
@@ -388,9 +393,24 @@ const CreateExam = () => {
                                             {/* Enunciado con botón regenerar */}
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between ml-1">
-                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                        Enunciado / Contexto
-                                                    </Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                            Enunciado / Contexto
+                                                        </Label>
+                                                        <AnimatePresence>
+                                                            {aiGeneratedFields[`${question.id}-enunciado`] && (
+                                                                <motion.span
+                                                                    initial={{ opacity: 0, x: -10 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    exit={{ opacity: 0, x: 10 }}
+                                                                    transition={{ duration: 0.3 }}
+                                                                    className="text-[10px] font-semibold text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10"
+                                                                >
+                                                                    Generado por IA
+                                                                </motion.span>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRegenerate(question.id, "enunciado")}
@@ -404,13 +424,23 @@ const CreateExam = () => {
                                                         )}
                                                     </button>
                                                 </div>
-                                                <Textarea
-                                                    placeholder="Describe la tarea lógica o la consulta que debe resolverse..."
-                                                    rows={2}
-                                                    value={question.description}
-                                                    onChange={e => updateQuestionField(question.id, "description", e.target.value)}
-                                                    className="resize-none bg-black/20 border-white/10 focus-visible:border-primary/50 transition-all rounded-lg p-3"
-                                                />
+                                                <motion.div
+                                                    animate={{
+                                                        boxShadow: aiGeneratedFields[`${question.id}-enunciado`]
+                                                            ? '0 0 0 1px rgba(99,102,241,0.5), 0 0 14px rgba(99,102,241,0.2)'
+                                                            : '0 0 0 0px rgba(99,102,241,0)',
+                                                    }}
+                                                    transition={{ duration: 0.45, ease: 'easeOut' }}
+                                                    className="rounded-lg"
+                                                >
+                                                    <Textarea
+                                                        placeholder="Describe la tarea lógica o la consulta que debe resolverse..."
+                                                        rows={2}
+                                                        value={question.description}
+                                                        onChange={e => updateQuestionField(question.id, "description", e.target.value)}
+                                                        className="resize-none bg-black/20 border-white/10 focus-visible:border-primary/50 transition-all rounded-lg p-3 w-full"
+                                                    />
+                                                </motion.div>
                                             </div>
 
                                             {/* Bloques de código */}
@@ -439,7 +469,12 @@ const CreateExam = () => {
                                                 </div>
 
                                                 {/* Salida esperada con botón regenerar */}
-                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
+                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border transition-all duration-500"
+                                                    style={{
+                                                        borderColor: aiGeneratedFields[`${question.id}-casos`] ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.05)',
+                                                        boxShadow: aiGeneratedFields[`${question.id}-casos`] ? '0 0 12px rgba(99,102,241,0.3)' : '0 0 0px rgba(99,102,241,0)',
+                                                    }}
+                                                >
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-2">
                                                             <div className="flex gap-1.5 mr-2">
@@ -450,6 +485,19 @@ const CreateExam = () => {
                                                             <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                                                 Salida en Pantalla (Tabla)
                                                             </Label>
+                                                            <AnimatePresence>
+                                                                {aiGeneratedFields[`${question.id}-casos`] && (
+                                                                    <motion.span
+                                                                        initial={{ opacity: 0, x: -10 }}
+                                                                        animate={{ opacity: 1, x: 0 }}
+                                                                        exit={{ opacity: 0, x: 10 }}
+                                                                        transition={{ duration: 0.3 }}
+                                                                        className="text-[10px] font-semibold text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10"
+                                                                    >
+                                                                        Generado por IA
+                                                                    </motion.span>
+                                                                )}
+                                                            </AnimatePresence>
                                                         </div>
                                                         <button
                                                             type="button"
