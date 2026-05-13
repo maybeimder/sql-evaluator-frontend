@@ -302,7 +302,7 @@ const DashboardStudent = () => {
                                 </motion.div>
                             ) : (
                                 <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
-                                    {availableExams.map((exam) => (
+                                    {availableExams.map((exam) => (console.log("EXAM OBJECT:", exam),
                                         <motion.div
                                             variants={itemVariants}
                                             key={exam.ExamID}
@@ -331,7 +331,7 @@ const DashboardStudent = () => {
                                                 </div>
                                             </div>
                                             <Button
-                                                onClick={() => navigate(`/exam/take/${exam.ExamID}`, { state: { examID: exam.ExamID } })}
+                                                onClick={() => navigate(`/exam/take/${exam.ExamID}`, { state: { examID: exam.ExamID, assignmentID: exam.AssignmentID ?? exam.assignmentID ?? null } })}
                                                 className="w-full sm:w-auto relative overflow-hidden group/btn hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] active:scale-95 transition-all duration-200"
                                             >
                                                 <span className="relative z-10 flex items-center justify-center gap-2">
