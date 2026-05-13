@@ -1,64 +1,105 @@
 import { Button } from "@/components/ui/button";
-import { Database, Play, CheckCircle2, LogOut, Code2, Terminal, ChevronLeft, ChevronRight, FileText, Database as DbIcon, Info, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Database, Play, CheckCircle2, LogOut, Code2, Terminal, Database as DbIcon, Info, Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const ExamEvaluator = () => {
     const navigate = useNavigate();
-    const [sqlCode, setSqlCode] = useState("SELECT * FROM usuarios WHERE edad > 18;");
+    const { examID } = useParams();
+    const { state } = useLocation();
+    const token = localStorage.getItem("accessToken");
+
+    const [sqlCode, setSqlCode] = useState("");
+    const [answers, setAnswers] = useState({});
     const [output, setOutput] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
-    const [remainingTime, setRemainingTime] = useState(60 * 60);
+    const [remainingTime, setRemainingTime] = useState(() => {
+        const saved = localStorage.getItem(`exam_timer_${examID}`);
+        return saved ? parseInt(saved) : 3600;
+    });
     const [executionTime, setExecutionTime] = useState(null);
     const timerRef = useRef(null);
-    const [mockQuestion,setMockQuestion] = useState(null);
-    const { examID } = useParams();
-    const [questions, setQuestions] = useState([]);
-    const [loading, setLoading]     = useState(true);
-    const token = localStorage.getItem("accessToken");
+
+    const [questionsArray, setQuestionsArray] = useState([]);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [assignmentID, setAssignmentID] = useState(state?.assignmentID ?? null);
+    const [examInfo, setExamInfo] = useState(null);
+    const [loading, setLoading] = useState(true);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
     const [comparisonResult, setComparisonResult] = useState(null);
+    const [showExitModal, setShowExitModal] = useState(false);
 
+    const currentQuestion = questionsArray[currentQuestionIndex] ? {
+        title: questionsArray[currentQuestionIndex].QuestionTitle,
+        description: questionsArray[currentQuestionIndex].QuestionText,
+        expectedOutput: questionsArray[currentQuestionIndex].ExpectedOutput?.text ?? questionsArray[currentQuestionIndex].ExpectedOutput,
+        points: questionsArray[currentQuestionIndex].Value,
+        type: "SQL",
+        tableSchema: questionsArray[currentQuestionIndex].TableSchema
+            ?? questionsArray[currentQuestionIndex].Schema
+            ?? null,
+    } : null;
+
+    const totalQuestions = questionsArray.length;
+    const allowsRejoin = examInfo?.AllowsRejoin ?? true;
+
+    // Fetch questions
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        console.log(token);
         fetch(`${API_URL}/exams/id/${examID}/questions`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         .then(r => r.json())
         .then(data => {
-            setQuestions(data);
-            setMockQuestion({
-                title: data.questions[0].QuestionTitle,
-                description: data.questions[0].QuestionText,
-                expectedOutput: data.questions[0].ExpectedOutput?.text ?? data.questions[0].ExpectedOutput,
-                points: data.questions[0].Value,
-                type: "SQL"
-            }); // Para esta demo, solo usamos la primera pregunta
+            console.log("QUESTIONS RESPONSE:", data);
+            setQuestionsArray(data.questions ?? []);
+            setAssignmentID(data.assignmentID ?? data.AssignmentID ?? null);
             setLoading(false);
         });
     }, [examID]);
 
+    // Fetch exam info (AllowsRejoin, Duration) — best-effort, student may not have access
+    useEffect(() => {
+        fetch(`${API_URL}/exams/id/${examID}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(r => { if (!r.ok) return null; return r.json(); })
+        .then(data => {
+            if (!data) return;
+            const exam = data.exam ?? data;
+            setExamInfo(exam);
+            const saved = localStorage.getItem(`exam_timer_${examID}`);
+            if (!saved && exam.Duration) {
+                setRemainingTime(exam.Duration * 60);
+            }
+        })
+        .catch(() => {});
+    }, [examID]);
+
+    // Timer — saves remaining seconds to localStorage on every tick
     useEffect(() => {
         timerRef.current = setInterval(() => {
             setRemainingTime((prev) => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current);
+                    localStorage.removeItem(`exam_timer_${examID}`);
                     return 0;
                 }
-                return prev - 1;
+                const next = prev - 1;
+                localStorage.setItem(`exam_timer_${examID}`, next.toString());
+                return next;
             });
         }, 1000);
         return () => clearInterval(timerRef.current);
-    }, []);
+    }, [examID]);
 
     if (loading) return <p>Cargando preguntas...</p>;
 
@@ -80,14 +121,12 @@ const ExamEvaluator = () => {
             const elapsed = end - start;
             setExecutionTime(elapsed < 1000 ? `${elapsed.toFixed(0)}ms` : `${(elapsed / 1000).toFixed(2)}s`);
 
-            // SCRUM-130 — Comparar salida con esperada
             const outputNormalized = resultado.toLowerCase().replace(/\s+/g, " ").trim();
-            const expectedNormalized = mockQuestion.expectedOutput.toLowerCase().replace(/\s+/g, " ").trim();
+            const expectedNormalized = (currentQuestion?.expectedOutput ?? "").toLowerCase().replace(/\s+/g, " ").trim();
             setComparisonResult(outputNormalized.includes(expectedNormalized) ? "correct" : "incorrect");
         }, 400);
     };
 
-    // Animations
     const containerVariants = {
         hidden: { opacity: 0 },
         show: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -99,20 +138,16 @@ const ExamEvaluator = () => {
     };
 
     const handleSubmitExam = async () => {
-        if (!sqlCode.trim()) {
-            setSubmitError("No puedes enviar sin escribir una consulta.");
-            return;
-        }
         setIsSubmitting(true);
         setSubmitError("");
         try {
-            // Cuando el backend esté listo, reemplaza esto con el fetch real:
-            // const res = await fetch(`${API_URL}/exams/submit`, {
-            //   method: "POST",
-            //   headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-            //   body: JSON.stringify({ examID, query: sqlCode }),
-            // });
-            await new Promise(resolve => setTimeout(resolve, 1000)); // simulación
+            const res = await fetch(`${API_URL}/assignments/id/${assignmentID ?? examID}/finish`, {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+                credentials: "include",
+            });
+            if (!res.ok) throw new Error("Error al enviar el examen");
+            localStorage.removeItem(`exam_timer_${examID}`);
             setSubmitSuccess(true);
             setTimeout(() => navigate("/dashboard/student"), 2000);
         } catch {
@@ -122,8 +157,94 @@ const ExamEvaluator = () => {
         }
     };
 
+    const navigateQuestion = (newIndex) => {
+        // Save current answer before leaving
+        setAnswers(prev => ({ ...prev, [currentQuestionIndex]: sqlCode }));
+        // Restore saved answer for the new question (or empty if never visited)
+        setSqlCode(answers[newIndex] ?? "");
+        setCurrentQuestionIndex(newIndex);
+        setOutput("");
+        setComparisonResult(null);
+        setExecutionTime(null);
+    };
+
+    const handleExitConfirm = async () => {
+        if (!allowsRejoin) {
+            await handleSubmitExam();
+        } else {
+            navigate("/dashboard/student");
+        }
+    };
+
     return (
         <div className="h-screen flex flex-col bg-[#0d0f1a] overflow-hidden font-sans text-foreground" style={{ minHeight: '100dvh' }}>
+
+            {/* Exit Confirmation Modal */}
+            <AnimatePresence>
+                {showExitModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-[#111320] border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
+                        >
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-foreground mb-1">
+                                        {allowsRejoin ? "¿Salir sin guardar?" : "¿Seguro que quieres salir?"}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {allowsRejoin
+                                            ? "Puedes volver a ingresar más tarde. El tiempo seguirá corriendo mientras estés fuera."
+                                            : "Este examen no permite volver a ingresar. Al salir, el examen se enviará automáticamente."}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {!allowsRejoin && (
+                                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2">
+                                    <span className="text-red-400 text-xs font-bold">⚠</span>
+                                    <p className="text-xs text-red-400">
+                                        Este es tu único intento. Si sales, tu examen se enviará con las respuestas actuales.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 mt-2">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white transition-colors"
+                                    onClick={() => setShowExitModal(false)}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className={`flex-1 transition-colors ${!allowsRejoin
+                                        ? "bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
+                                        : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
+                                    }`}
+                                    onClick={handleExitConfirm}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />Enviando...</>
+                                    ) : allowsRejoin ? "Salir" : "Salir y Enviar"}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Header General */}
             <motion.header
@@ -141,10 +262,10 @@ const ExamEvaluator = () => {
 
                     {/* Question progress indicator */}
                     <div className="hidden sm:flex items-center gap-1.5 bg-black/30 px-4 py-1.5 rounded-full border border-white/5">
-                        {[1, 2, 3, 4, 5].map(n => (
-                            <div key={n} className={`h-1.5 rounded-full transition-all duration-300 ${n === 1 ? 'w-6 bg-primary shadow-[0_0_6px_rgba(99,102,241,0.6)]' : 'w-4 bg-white/10'}`}></div>
+                        {Array.from({ length: totalQuestions }, (_, i) => (
+                            <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentQuestionIndex ? 'w-6 bg-primary shadow-[0_0_6px_rgba(99,102,241,0.6)]' : 'w-4 bg-white/10'}`}></div>
                         ))}
-                        <span className="text-xs text-muted-foreground ml-1.5">1/5</span>
+                        <span className="text-xs text-muted-foreground ml-1.5">{currentQuestionIndex + 1}/{totalQuestions}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 sm:gap-4">
@@ -155,7 +276,7 @@ const ExamEvaluator = () => {
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate("/dashboard/student")}
+                            onClick={() => setShowExitModal(true)}
                             className="text-muted-foreground hover:text-white hover:bg-white/5 transition-colors h-8 text-xs hidden sm:flex"
                         >
                             <LogOut className="h-3.5 w-3.5 sm:mr-2" />
@@ -214,9 +335,9 @@ const ExamEvaluator = () => {
                         className="flex md:hidden items-center justify-between px-4 py-3 cursor-pointer border-b border-white/5 active:bg-white/5 transition-colors"
                         onClick={() => setQuestionPanelOpen(o => !o)}
                     >
-                        <span className="text-xs font-bold text-primary tracking-widest uppercase">Pregunta 1 de 5</span>
+                        <span className="text-xs font-bold text-primary tracking-widest uppercase">Pregunta {currentQuestionIndex + 1} de {totalQuestions}</span>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-foreground bg-white/5 px-2 py-0.5 rounded-full border border-white/10">{mockQuestion.points} pts</span>
+                            <span className="text-xs font-bold text-foreground bg-white/5 px-2 py-0.5 rounded-full border border-white/10">{currentQuestion?.points} pts</span>
                             {questionPanelOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                         </div>
                     </div>
@@ -227,14 +348,14 @@ const ExamEvaluator = () => {
                         <div className="p-4 sm:p-5 border-b border-white/5">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-xs font-bold text-primary tracking-widest uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/20 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
-                                    Pregunta 1 de 5
+                                    Pregunta {currentQuestionIndex + 1} de {totalQuestions}
                                 </span>
                                 <span className="flex items-center gap-1 text-xs font-bold text-foreground bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
-                                    {mockQuestion.points} <span className="text-muted-foreground font-normal">pts</span>
+                                    {currentQuestion?.points} <span className="text-muted-foreground font-normal">pts</span>
                                 </span>
                             </div>
                             <h2 className="text-lg font-bold text-foreground leading-tight mb-2">
-                                {mockQuestion.title}
+                                {currentQuestion?.title}
                             </h2>
                             <div className="flex items-center gap-1.5">
                                 <span className="flex h-2 w-2 relative">
@@ -242,7 +363,7 @@ const ExamEvaluator = () => {
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                                 </span>
                                 <span className="text-[10px] font-bold text-blue-400 tracking-wider uppercase">
-                                    {mockQuestion.type}
+                                    {currentQuestion?.type}
                                 </span>
                             </div>
                         </div>
@@ -251,11 +372,11 @@ const ExamEvaluator = () => {
                         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar">
 
                             <div className="text-sm text-foreground/90 leading-relaxed">
-                                <p>{mockQuestion.description}</p>
+                                <p>{currentQuestion?.description}</p>
                             </div>
 
-                            {/* Esquema de Tabla (Solo si es SQL) */}
-                            {mockQuestion.type === "SQL" && (
+                            {/* Esquema de Tabla — only shown if API provides it */}
+                            {currentQuestion?.type === "SQL" && currentQuestion?.tableSchema && (
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-1.5 mb-1">
                                         <DbIcon className="h-3.5 w-3.5 text-primary/60" />
@@ -264,12 +385,7 @@ const ExamEvaluator = () => {
                                     <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
                                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-primary/50 transition-colors"></div>
                                         <pre className="text-[13px] text-muted-foreground font-mono leading-relaxed pl-2 overflow-x-auto">
-                                            {`usuarios (
-  id INT PRIMARY KEY,
-  nombre VARCHAR(100),
-  email VARCHAR(100),
-  edad INT
-)`}
+                                            {currentQuestion.tableSchema}
                                         </pre>
                                     </div>
                                 </div>
@@ -284,7 +400,7 @@ const ExamEvaluator = () => {
                                 <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-green-500/50 transition-colors"></div>
                                     <code className="text-[13px] text-green-400/90 font-mono pl-2 block break-all">
-                                        {mockQuestion.expectedOutput}
+                                        {currentQuestion?.expectedOutput}
                                     </code>
                                 </div>
                             </div>
@@ -293,11 +409,20 @@ const ExamEvaluator = () => {
 
                         {/* Navegación Footer */}
                         <div className="p-4 border-t border-white/5 flex gap-3 bg-black/20">
-                            <Button variant="outline" className="flex-1 h-9 text-xs gap-1 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white transition-all">
+                            <Button
+                                variant="outline"
+                                className="flex-1 h-9 text-xs gap-1 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white transition-all disabled:opacity-40"
+                                disabled={currentQuestionIndex === 0}
+                                onClick={() => navigateQuestion(currentQuestionIndex - 1)}
+                            >
                                 <ChevronLeft className="h-3.5 w-3.5" />
                                 Anterior
                             </Button>
-                            <Button className="flex-1 h-9 text-xs gap-1 border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary transition-all shadow-none">
+                            <Button
+                                className="flex-1 h-9 text-xs gap-1 border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary transition-all shadow-none disabled:opacity-40"
+                                disabled={currentQuestionIndex === totalQuestions - 1}
+                                onClick={() => navigateQuestion(currentQuestionIndex + 1)}
+                            >
                                 Siguiente
                                 <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
@@ -342,7 +467,7 @@ const ExamEvaluator = () => {
                                 value={sqlCode}
                                 onChange={(e) => setSqlCode(e.target.value)}
                                 className="absolute inset-0 pl-14 pr-4 py-4 w-full h-full font-mono text-[14px] bg-transparent text-[#e2e8f0] border-none resize-none focus-visible:ring-0 leading-relaxed"
-                                placeholder="Escribe tu código aquí..."
+                                placeholder="SELECT * FROM usuarios WHERE edad > 18;"
                                 spellCheck="false"
                                 style={{ tabSize: 4 }}
                             />
@@ -358,7 +483,6 @@ const ExamEvaluator = () => {
                                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consola de Salida</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                {/* Resultado de comparación */}
                                 {comparisonResult && (
                                     <motion.div
                                         initial={{ opacity: 0, scale: 0.8 }}
@@ -427,7 +551,7 @@ const ExamEvaluator = () => {
                                                 </p>
                                                 <div className="bg-black/30 rounded-lg p-3 border border-white/5">
                                                     <code className="text-[12px] font-mono text-success/80">
-                                                        {mockQuestion.expectedOutput}
+                                                        {currentQuestion?.expectedOutput}
                                                     </code>
                                                 </div>
                                             </div>
