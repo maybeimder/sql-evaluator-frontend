@@ -27,6 +27,8 @@ const CreateExam = () => {
     }]);
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [questionErrors, setQuestionErrors] = useState({});
 
     const addQuestion = () => {
         setQuestions(prev => [...prev, {
@@ -67,13 +69,32 @@ const CreateExam = () => {
     const handleSaveExam = async () => {
         setErrorMsg("");
         if (!accessToken) { setErrorMsg("No hay sesión activa."); navigate("/login"); return; }
-        if (!examTitle.trim()) { setErrorMsg("El título del examen es obligatorio."); return; }
-        const startTime = buildStartTimeISO();
-        if (!startTime) { setErrorMsg("Debes especificar fecha y hora de inicio."); return; }
-        if (!durationMinutes || Number(durationMinutes) <= 0) { setErrorMsg("La duración debe ser mayor a 0."); return; }
-        if (questions.length === 0) { setErrorMsg("Debes agregar al menos una pregunta."); return; }
-        const validation = validateQuestions(questions);
-        if (!validation.valid) { setErrorMsg(validation.error); return; }
+
+        const fErrors = {};
+        if (!examTitle.trim()) fErrors.examTitle = "El título es obligatorio";
+        if (!deadlineDate) fErrors.deadlineDate = "Requerida";
+        if (!deadlineTime) fErrors.deadlineTime = "Requerida";
+        if (!durationMinutes || Number(durationMinutes) <= 0) fErrors.durationMinutes = "Debe ser mayor a 0";
+
+        const qErrors = {};
+        questions.forEach((q, i) => {
+            const e = {};
+            if (!q.title.trim()) e.title = "Obligatorio";
+            if (!q.description.trim()) e.description = "Obligatorio";
+            if (!q.solutionExample.trim()) e.solutionExample = "Obligatorio";
+            if (!q.expectedOutput.trim()) e.expectedOutput = "Obligatorio";
+            if (!q.points || q.points <= 0) e.points = "Debe ser > 0";
+            if (Object.keys(e).length > 0) qErrors[q.id] = e;
+        });
+
+        if (Object.keys(fErrors).length > 0 || Object.keys(qErrors).length > 0) {
+            setFieldErrors(fErrors);
+            setQuestionErrors(qErrors);
+            setErrorMsg("Revisá los campos marcados en rojo antes de guardar.");
+            return;
+        }
+        setFieldErrors({});
+        setQuestionErrors({});
 
         const payload = {
             Title: examTitle,
@@ -211,9 +232,10 @@ const CreateExam = () => {
                                     <Input
                                         placeholder="ej: SQL Básico — Consultas SELECT y WHERE"
                                         value={examTitle}
-                                        onChange={e => setExamTitle(e.target.value)}
-                                        className="h-11 bg-black/20 border-white/10 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl"
+                                        onChange={e => { setExamTitle(e.target.value); setFieldErrors(f => ({ ...f, examTitle: undefined })); }}
+                                        className={`h-11 bg-black/20 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-xl ${fieldErrors.examTitle ? 'border-destructive/70' : 'border-white/10 focus-visible:border-primary/50'}`}
                                     />
+                                    {fieldErrors.examTitle && <p className="text-xs text-destructive ml-1">{fieldErrors.examTitle}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -231,9 +253,9 @@ const CreateExam = () => {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 bg-black/10 p-4 sm:p-5 rounded-2xl border border-white/5">
                                     {[
-                                        { label: "Fecha de inicio", id: "date", type: "date", value: deadlineDate, setter: setDeadlineDate },
-                                        { label: "Hora de inicio", id: "time", type: "time", value: deadlineTime, setter: setDeadlineTime },
-                                        { label: "Duración (min)", id: "dur", type: "number", value: durationMinutes, setter: setDurationMinutes },
+                                        { label: "Fecha de inicio", id: "date", type: "date", value: deadlineDate, setter: setDeadlineDate, errorKey: "deadlineDate" },
+                                        { label: "Hora de inicio", id: "time", type: "time", value: deadlineTime, setter: setDeadlineTime, errorKey: "deadlineTime" },
+                                        { label: "Duración (min)", id: "dur", type: "number", value: durationMinutes, setter: setDurationMinutes, errorKey: "durationMinutes" },
                                     ].map(field => (
                                         <div key={field.id} className="space-y-2">
                                             <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
@@ -242,9 +264,10 @@ const CreateExam = () => {
                                             <Input
                                                 type={field.type}
                                                 value={field.value}
-                                                onChange={e => field.setter(e.target.value)}
-                                                className="h-10 bg-black/20 border-white/10 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-lg text-sm"
+                                                onChange={e => { field.setter(e.target.value); setFieldErrors(f => ({ ...f, [field.errorKey]: undefined })); }}
+                                                className={`h-10 bg-black/20 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all rounded-lg text-sm ${fieldErrors[field.errorKey] ? 'border-destructive/70' : 'border-white/10 focus-visible:border-primary/50'}`}
                                             />
+                                            {fieldErrors[field.errorKey] && <p className="text-xs text-destructive ml-1">{fieldErrors[field.errorKey]}</p>}
                                         </div>
                                     ))}
                                 </div>
@@ -330,9 +353,10 @@ const CreateExam = () => {
                                                     <Input
                                                         placeholder="ej: Filtro de clientes por país activo"
                                                         value={question.title}
-                                                        onChange={e => updateQuestionField(question.id, "title", e.target.value)}
-                                                        className="h-10 bg-black/20 border-white/10 focus-visible:border-primary/50 transition-all rounded-lg"
+                                                        onChange={e => { updateQuestionField(question.id, "title", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], title: undefined } })); }}
+                                                        className={`h-10 bg-black/20 focus-visible:border-primary/50 transition-all rounded-lg ${questionErrors[question.id]?.title ? 'border-destructive/70' : 'border-white/10'}`}
                                                     />
+                                                    {questionErrors[question.id]?.title && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].title}</p>}
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1 text-primary/80">
@@ -341,9 +365,10 @@ const CreateExam = () => {
                                                     <Input
                                                         type="number"
                                                         value={question.points}
-                                                        onChange={e => updateQuestionField(question.id, "points", e.target.value)}
-                                                        className="h-10 bg-primary/5 border-primary/20 text-primary font-bold text-center focus-visible:border-primary/50 transition-all rounded-lg"
+                                                        onChange={e => { updateQuestionField(question.id, "points", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], points: undefined } })); }}
+                                                        className={`h-10 bg-primary/5 text-primary font-bold text-center focus-visible:border-primary/50 transition-all rounded-lg ${questionErrors[question.id]?.points ? 'border-destructive/70' : 'border-primary/20'}`}
                                                     />
+                                                    {questionErrors[question.id]?.points && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].points}</p>}
                                                 </div>
                                             </div>
 
@@ -355,14 +380,15 @@ const CreateExam = () => {
                                                     placeholder="Describe la tarea lógica o la consulta que debe resolverse..."
                                                     rows={2}
                                                     value={question.description}
-                                                    onChange={e => updateQuestionField(question.id, "description", e.target.value)}
-                                                    className="resize-none bg-black/20 border-white/10 focus-visible:border-primary/50 transition-all rounded-lg p-3"
+                                                    onChange={e => { updateQuestionField(question.id, "description", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], description: undefined } })); }}
+                                                    className={`resize-none bg-black/20 focus-visible:border-primary/50 transition-all rounded-lg p-3 ${questionErrors[question.id]?.description ? 'border-destructive/70' : 'border-white/10'}`}
                                                 />
+                                                {questionErrors[question.id]?.description && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].description}</p>}
                                             </div>
 
                                             {/* Bloques de Código */}
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
-                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5 relative overflow-hidden">
+                                                <div className={`space-y-2 bg-black/20 p-4 rounded-2xl border relative overflow-hidden ${questionErrors[question.id]?.solutionExample ? 'border-destructive/50' : 'border-white/5'}`}>
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className="flex gap-1.5 mr-2">
                                                             <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
@@ -377,17 +403,14 @@ const CreateExam = () => {
                                                         placeholder="SELECT * FROM tabla WHERE condicion = 1;"
                                                         rows={4}
                                                         value={question.solutionExample}
-                                                        onChange={e => updateQuestionField(question.id, "solutionExample", e.target.value)}
+                                                        onChange={e => { updateQuestionField(question.id, "solutionExample", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], solutionExample: undefined } })); }}
                                                         className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                                                        style={{
-                                                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                                                            color: '#a78bfa',
-                                                            lineHeight: '1.6'
-                                                        }}
+                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: '#a78bfa', lineHeight: '1.6' }}
                                                     />
+                                                    {questionErrors[question.id]?.solutionExample && <p className="text-xs text-destructive">{questionErrors[question.id].solutionExample}</p>}
                                                 </div>
 
-                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5 relative overflow-hidden">
+                                                <div className={`space-y-2 bg-black/20 p-4 rounded-2xl border relative overflow-hidden ${questionErrors[question.id]?.expectedOutput ? 'border-destructive/50' : 'border-white/5'}`}>
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className="flex gap-1.5 mr-2">
                                                             <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
@@ -402,14 +425,11 @@ const CreateExam = () => {
                                                         placeholder="Columna1 | Columna2&#10;Dato1    | Dato2"
                                                         rows={4}
                                                         value={question.expectedOutput}
-                                                        onChange={e => updateQuestionField(question.id, "expectedOutput", e.target.value)}
+                                                        onChange={e => { updateQuestionField(question.id, "expectedOutput", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], expectedOutput: undefined } })); }}
                                                         className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                                                        style={{
-                                                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                                                            color: '#34d399',
-                                                            lineHeight: '1.6'
-                                                        }}
+                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: '#34d399', lineHeight: '1.6' }}
                                                     />
+                                                    {questionErrors[question.id]?.expectedOutput && <p className="text-xs text-destructive">{questionErrors[question.id].expectedOutput}</p>}
                                                 </div>
                                             </div>
                                         </div>

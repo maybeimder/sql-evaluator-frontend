@@ -61,9 +61,9 @@ function App() {
             <Route path="/exam/create" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <CreateExam /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/exam/take" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamEvaluator /> </RoleRoute> </ProtectedRoute>} />
 
-            <Route path="/exams/:id" element={<ExamDetailStudent />} />
-            <Route path="/teacher/exams/:id" element={<TeacherExamDetail />} />
-            <Route path="/teacher/exams/:examId/students/:studentId" element={<TeacherExamStudentDetail />} />
+            <Route path="/exams/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 3]}> <ExamDetailStudent /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/teacher/exams/:id" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherExamDetail /> </RoleRoute> </ProtectedRoute>} />
+            <Route path="/teacher/exams/:examId/students/:studentId" element={<ProtectedRoute> <RoleRoute allowedRoles={[1, 2]}> <TeacherExamStudentDetail /> </RoleRoute> </ProtectedRoute>} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<NotFound />} />
         </Routes>

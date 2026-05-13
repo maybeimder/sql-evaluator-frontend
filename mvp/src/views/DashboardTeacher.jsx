@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/Components/ui/button";
-import { Database, Eye, FileText, Users, Plus, LogOut, Clock, ChevronRight } from "lucide-react";
+import { Eye, FileText, Users, Plus, Clock, ChevronRight, Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
+import DashboardLayout from "../Components/DashboardLayout";
 import { motion } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -19,16 +20,10 @@ const getExamStatus = (exam) => {
 
 const DashboardTeacher = () => {
     const navigate = useNavigate();
-    const { logout, user, accessToken } = useAuth();
+    const { user, accessToken } = useAuth();
     const [exams, setExams] = useState([]);
     const [loadingExams, setLoadingExams] = useState(false);
     const [errorExams, setErrorExams] = useState("");
-
-    async function logout_function() {
-        logout();
-        await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
-        navigate("/");
-    }
 
     useEffect(() => {
         const fetchExams = async () => {
@@ -56,10 +51,6 @@ const DashboardTeacher = () => {
         fetchExams();
     }, [accessToken]);
 
-    const initials = user?.FullName
-        ? user.FullName.split(" ").map(w => w[0]).slice(0, 2).join("")
-        : "P";
-
     // Variantes de Framer Motion
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -77,33 +68,7 @@ const DashboardTeacher = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-
-            {/* Navbar */}
-            <header className="border-b border-white/10 bg-card/60 backdrop-blur-md sticky top-0 z-50 transition-all duration-300">
-                <div className="container mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 group cursor-pointer">
-                        <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 group-hover:shadow-primary/40 transition-all duration-300">
-                            <Database className="h-4 w-4 text-white group-hover:rotate-12 transition-transform duration-300" />
-                        </div>
-                        <span className="text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300">QueryLogic</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground hidden sm:inline-block">
-                            Prof. <span className="font-medium text-foreground">{user?.FullName || "—"}</span>
-                        </span>
-                        <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary hover:scale-105 hover:bg-primary/20 transition-all duration-300 cursor-default">
-                            {initials}
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={logout_function}
-                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2 active:scale-95 transition-all duration-200">
-                            <LogOut className="h-4 w-4" />
-                            <span className="hidden sm:inline">Salir</span>
-                        </Button>
-                    </div>
-                </div>
-            </header>
-
+        <DashboardLayout label="Prof.">
             <div className="container mx-auto px-4 sm:px-8 py-8">
 
                 {/* Título */}
@@ -122,7 +87,7 @@ const DashboardTeacher = () => {
                             <p className="text-sm text-muted-foreground mt-1">Gestiona tus exámenes, estudiantes y bases de datos</p>
                         </div>
                         <Button
-                            onClick={() => navigate("/preview/create-exam")}
+                            onClick={() => navigate("/exam/create")}
                             size="sm"
                             className="gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 self-start sm:self-auto"
                         >
@@ -166,7 +131,7 @@ const DashboardTeacher = () => {
                         {
                             icon: Plus, label: "Crear examen", sub: "Nuevo examen SQL",
                             color: "text-primary", bg: "bg-primary/10",
-                            border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/preview/create-exam")
+                            border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/exam/create")
                         },
                         { //BORRAR DESPUÉS, SOLO PARA PRUEBAS
                             icon: Eye, label: "Ver detalles", sub: "Detalles del examen",
@@ -176,12 +141,12 @@ const DashboardTeacher = () => {
                         {
                             icon: Users, label: "Ver estudiantes", sub: "Gestionar lista",
                             color: "text-success", bg: "bg-success/10",
-                            border: "hover:border-success/50", hoverShadow: "hover:shadow-success/20", action: () => navigate("/preview/students")
+                            border: "hover:border-success/50", hoverShadow: "hover:shadow-success/20", action: () => navigate("/students")
                         },
                         {
                             icon: Database, label: "Bases de datos", sub: "Administrar BD",
                             color: "text-accent", bg: "bg-accent/10",
-                            border: "hover:border-accent/50", hoverShadow: "hover:shadow-accent/20", action: () => navigate("/preview/databases")
+                            border: "hover:border-accent/50", hoverShadow: "hover:shadow-accent/20", action: () => navigate("/databases")
                         },
                     ].map((item, i) => (
                         <motion.div variants={itemVariants} key={i}>
@@ -222,7 +187,7 @@ const DashboardTeacher = () => {
                             <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => navigate("/preview/create-exam")}
+                                onClick={() => navigate("/exam/create")}
                                 className="h-7 px-2 text-xs text-primary hover:bg-primary/10 gap-1"
                             >
                                 <Plus className="h-3 w-3" />
@@ -255,7 +220,7 @@ const DashboardTeacher = () => {
                             <p className="text-sm text-muted-foreground mb-4 max-w-sm">Comienza creando tu primer examen SQL para evaluar a tus estudiantes.</p>
 
                             <Button
-                                onClick={() => navigate("/preview/create-exam")}
+                                onClick={() => navigate("/exam/create")}
                                 className="group relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:scale-95"
                             >
                                 <span className="relative z-10 flex items-center gap-2">
@@ -332,7 +297,7 @@ const DashboardTeacher = () => {
                     )}
                 </motion.div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 

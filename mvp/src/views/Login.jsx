@@ -77,15 +77,30 @@ const Login = ({ noPermission = false }) => {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
     const [sessionExpired, setSessionExpired] = useState(() => {
         const expired = sessionStorage.getItem("session_expired") === "1";
         if (expired) sessionStorage.removeItem("session_expired");
         return expired;
     });
 
+    const validate = () => {
+        const errors = {};
+        if (!email) errors.email = "El email es obligatorio";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "El email no tiene un formato válido";
+        if (!password) errors.password = "La contraseña es obligatoria";
+        return errors;
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setErrorMsg("");
+        const errors = validate();
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            return;
+        }
+        setFieldErrors({});
         setLoading(true);
         try {
             const [res] = await Promise.all([
@@ -182,16 +197,16 @@ const Login = ({ noPermission = false }) => {
                                 type="email"
                                 placeholder="tu@uninorte.edu.co"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => { setEmail(e.target.value); setFieldErrors(f => ({ ...f, email: undefined })); }}
                                 disabled={loading}
-                                required
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
-                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    border: fieldErrors.email ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(99, 102, 241, 0.2)',
                                     borderRadius: '8px',
                                 }}
                                 className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
+                            {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
                         </div>
 
                         <div className="space-y-2">
@@ -208,16 +223,16 @@ const Login = ({ noPermission = false }) => {
                                 type="password"
                                 placeholder="••••••••"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => { setPassword(e.target.value); setFieldErrors(f => ({ ...f, password: undefined })); }}
                                 disabled={loading}
-                                required
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
-                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    border: fieldErrors.password ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(99, 102, 241, 0.2)',
                                     borderRadius: '8px',
                                 }}
                                 className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
+                            {fieldErrors.password && <p className="text-xs text-destructive">{fieldErrors.password}</p>}
                         </div>
 
                         {errorMsg && (

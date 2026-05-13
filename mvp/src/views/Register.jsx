@@ -81,12 +81,30 @@ const Register = () => {
     const [role, setRole] = useState("3");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const API_URL = import.meta.env.VITE_API_URL;
+
+    const validate = () => {
+        const errors = {};
+        if (!code) errors.code = "El código académico es obligatorio";
+        if (!name.trim()) errors.name = "El nombre es obligatorio";
+        if (!email) errors.email = "El email es obligatorio";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "El email no tiene un formato válido";
+        if (!password) errors.password = "La contraseña es obligatoria";
+        else if (password.length < 8) errors.password = "La contraseña debe tener al menos 8 caracteres";
+        return errors;
+    };
 
     const handleRegister = async (e) => {
         e.preventDefault();
         setErrorMsg("");
+        const errors = validate();
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            return;
+        }
+        setFieldErrors({});
         setLoading(true);
 
         try {
@@ -176,15 +194,15 @@ const Register = () => {
                                 type="text"
                                 placeholder="200000000"
                                 value={code}
-                                onChange={(e) => setCode(e.target.value)}
-                                required
+                                onChange={(e) => { setCode(e.target.value); setFieldErrors(f => ({ ...f, code: undefined })); }}
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
-                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    border: fieldErrors.code ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(99, 102, 241, 0.2)',
                                     borderRadius: '8px',
                                 }}
                                 className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
+                            {fieldErrors.code && <p className="text-xs text-destructive">{fieldErrors.code}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -195,15 +213,15 @@ const Register = () => {
                                 type="text"
                                 placeholder="Juan Pérez"
                                 value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
+                                onChange={(e) => { setName(e.target.value); setFieldErrors(f => ({ ...f, name: undefined })); }}
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
-                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    border: fieldErrors.name ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(99, 102, 241, 0.2)',
                                     borderRadius: '8px',
                                 }}
                                 className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
+                            {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -214,15 +232,15 @@ const Register = () => {
                                 type="email"
                                 placeholder="tu@uninorte.edu.co"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
+                                onChange={(e) => { setEmail(e.target.value); setFieldErrors(f => ({ ...f, email: undefined })); }}
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
-                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    border: fieldErrors.email ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(99, 102, 241, 0.2)',
                                     borderRadius: '8px',
                                 }}
                                 className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
+                            {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -233,15 +251,15 @@ const Register = () => {
                                 type="password"
                                 placeholder="••••••••"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
+                                onChange={(e) => { setPassword(e.target.value); setFieldErrors(f => ({ ...f, password: undefined })); }}
                                 style={{
                                     background: 'rgba(17, 19, 31, 0.8)',
-                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    border: fieldErrors.password ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(99, 102, 241, 0.2)',
                                     borderRadius: '8px',
                                 }}
                                 className="focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                             />
+                            {fieldErrors.password && <p className="text-xs text-destructive">{fieldErrors.password}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="role" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
