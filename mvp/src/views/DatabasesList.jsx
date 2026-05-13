@@ -132,7 +132,7 @@ const DatabasesList = () => {
                     </div>
                     <Button
                         variant="ghost" size="sm"
-                        onClick={() => navigate("/preview/teacher")}
+                        onClick={() => navigate("/dashboard/teacher")}
                         className="gap-2 text-muted-foreground hover:text-foreground hover:bg-white/5 active:scale-95 transition-all duration-200 group"
                     >
                         <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />

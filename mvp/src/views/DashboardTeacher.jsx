@@ -122,7 +122,7 @@ const DashboardTeacher = () => {
                             <p className="text-sm text-muted-foreground mt-1">Gestiona tus exámenes, estudiantes y bases de datos</p>
                         </div>
                         <Button
-                            onClick={() => navigate("/preview/create-exam")}
+                            onClick={() => navigate("/exam/create")}
                             size="sm"
                             className="gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300 self-start sm:self-auto"
                         >
@@ -133,7 +133,7 @@ const DashboardTeacher = () => {
                 </motion.div>
 
                 {/* Stats */}
-                <motion.div 
+                <motion.div
                     variants={containerVariants}
                     initial="hidden"
                     animate="show"
@@ -156,7 +156,7 @@ const DashboardTeacher = () => {
                 </motion.div>
 
                 {/* Acciones rápidas */}
-                <motion.div 
+                <motion.div
                     variants={containerVariants}
                     initial="hidden"
                     animate="show"
@@ -166,22 +166,17 @@ const DashboardTeacher = () => {
                         {
                             icon: Plus, label: "Crear examen", sub: "Nuevo examen SQL",
                             color: "text-primary", bg: "bg-primary/10",
-                            border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/preview/create-exam")
-                        },
-                        { //BORRAR DESPUÉS, SOLO PARA PRUEBAS
-                            icon: Eye, label: "Ver detalles", sub: "Detalles del examen",
-                            color: "text-primary", bg: "bg-primary/10",
-                            border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/preview/teacher-exam-detail")
+                            border: "hover:border-primary/50", hoverShadow: "hover:shadow-primary/20", action: () => navigate("/exam/create")
                         },
                         {
                             icon: Users, label: "Ver estudiantes", sub: "Gestionar lista",
                             color: "text-success", bg: "bg-success/10",
-                            border: "hover:border-success/50", hoverShadow: "hover:shadow-success/20", action: () => navigate("/preview/students")
+                            border: "hover:border-success/50", hoverShadow: "hover:shadow-success/20", action: () => navigate("/students")
                         },
                         {
                             icon: Database, label: "Bases de datos", sub: "Administrar BD",
                             color: "text-accent", bg: "bg-accent/10",
-                            border: "hover:border-accent/50", hoverShadow: "hover:shadow-accent/20", action: () => navigate("/preview/databases")
+                            border: "hover:border-accent/50", hoverShadow: "hover:shadow-accent/20", action: () => navigate("/databases")
                         },
                     ].map((item, i) => (
                         <motion.div variants={itemVariants} key={i}>
@@ -202,7 +197,7 @@ const DashboardTeacher = () => {
                 </motion.div>
 
                 {/* Lista de exámenes */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
@@ -222,7 +217,7 @@ const DashboardTeacher = () => {
                             <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => navigate("/preview/create-exam")}
+                                onClick={() => navigate("/exam/create")}
                                 className="h-7 px-2 text-xs text-primary hover:bg-primary/10 gap-1"
                             >
                                 <Plus className="h-3 w-3" />
@@ -243,7 +238,7 @@ const DashboardTeacher = () => {
                             <p className="text-sm text-muted-foreground animate-pulse">Cargando exámenes...</p>
                         </div>
                     ) : exams.length === 0 ? (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             className="px-6 py-16 text-center flex flex-col items-center justify-center"
@@ -255,7 +250,7 @@ const DashboardTeacher = () => {
                             <p className="text-sm text-muted-foreground mb-4 max-w-sm">Comienza creando tu primer examen SQL para evaluar a tus estudiantes.</p>
 
                             <Button
-                                onClick={() => navigate("/preview/create-exam")}
+                                onClick={() => navigate("/exam/create")}
                                 className="group relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:scale-95"
                             >
                                 <span className="relative z-10 flex items-center gap-2">
@@ -266,7 +261,7 @@ const DashboardTeacher = () => {
 
                         </motion.div>
                     ) : (
-                        <motion.div 
+                        <motion.div
                             variants={containerVariants}
                             initial="hidden"
                             animate="show"
@@ -293,6 +288,18 @@ const DashboardTeacher = () => {
                                                 <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors duration-200">
                                                     {exam.Title}
                                                 </p>
+                                                {exam.GroupName && (
+                                                    <span
+                                                        className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1"
+                                                        style={{
+                                                            background: 'rgba(99,102,241,0.1)',
+                                                            color: '#6366f1',
+                                                            border: '1px solid rgba(99,102,241,0.2)'
+                                                        }}
+                                                    >
+                                                        ⊞ {exam.GroupName}
+                                                    </span>
+                                                )}
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <Clock className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary/70 transition-colors" />
                                                     <p className="text-xs text-muted-foreground">

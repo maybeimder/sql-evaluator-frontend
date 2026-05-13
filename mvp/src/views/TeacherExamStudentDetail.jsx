@@ -234,7 +234,7 @@ const TeacherExamStudentDetail = () => {
                   className="text-muted-foreground hover:text-foreground hover:bg-white/5 gap-2 active:scale-95 transition-all duration-200 group"
               >
                   <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                  <span className="hidden sm:inline">Volver al examen</span>
+                  <span className="hidden sm:inline">Volver</span>
               </Button>
           </div>
       </header>

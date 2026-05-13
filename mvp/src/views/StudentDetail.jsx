@@ -65,7 +65,7 @@ const StudentDetail = () => {
           </div>
           <Button
             variant="ghost" size="sm"
-            onClick={() => navigate("/preview/students")}
+            onClick={() => navigate("/students")}
             className="gap-2 text-muted-foreground hover:text-foreground hover:bg-white/5 active:scale-95 transition-all duration-200 group"
           >
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
@@ -182,7 +182,7 @@ const StudentDetail = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 + (idx * 0.05) }}
                             key={exam.id}
-                            onClick={() => navigate("/preview/exam-detail")}
+                            onClick={() => navigate(`/teacher/exams/${exam.id}/students/${student.id}`)}
                             className="group flex flex-col sm:grid sm:grid-cols-[2.5fr_1fr_1fr_auto] gap-4 sm:gap-0 items-start sm:items-center px-6 sm:px-8 py-5 hover:bg-white/5 transition-all duration-300 cursor-pointer relative"
                         >
                             {/* Línea indicadora on hover */}
