@@ -4,7 +4,7 @@ import { Label } from "@/Components/ui/label";
 import { Textarea } from "@/Components/ui/textarea";
 import { Database, Plus, Trash2, Save, X, Clock, FileText, Settings, LayoutList, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -28,7 +28,7 @@ const CreateExam = () => {
     };
     const [questions, setQuestions] = useState([{
         id: 1, title: "", description: "",
-        solutionExample: "", expectedOutput: "", points: 10,
+        solutionExample: "", expectedOutput: null, points: 10,
     }]);
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
@@ -37,6 +37,27 @@ const CreateExam = () => {
     const [fieldErrors, setFieldErrors] = useState({});
     const [questionErrors, setQuestionErrors] = useState({});
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+    const [databases, setDatabases] = useState([]);
+    const [dbLoading, setDbLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDatabases = async () => {
+            try {
+                const res = await fetch(`${API_URL}/databases`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    credentials: "include",
+                });
+                const data = await res.json();
+                if (res.ok && data.ok) setDatabases(data.databases);
+            } catch (err) {
+                console.error("[CreateExam] Error cargando bases de datos:", err);
+            } finally {
+                setDbLoading(false);
+            }
+        };
+        fetchDatabases();
+    }, [accessToken]);
 
     const [selectedGroup, setSelectedGroup] = useState("");
     const mockGroups = [
@@ -50,7 +71,7 @@ const CreateExam = () => {
         setQuestions(prev => [...prev, {
             id: Date.now(),
             title: "", description: "",
-            solutionExample: "", expectedOutput: "", points: 10,
+            solutionExample: "", expectedOutput: null, points: 10,
         }]);
     };
 
@@ -76,7 +97,6 @@ const CreateExam = () => {
             if (!q.title.trim()) return { valid: false, error: `La pregunta ${idx} necesita un título.` };
             if (!q.description.trim()) return { valid: false, error: `La pregunta ${idx} necesita un enunciado.` };
             if (!q.solutionExample.trim()) return { valid: false, error: `La pregunta ${idx} necesita la consulta SQL solución.` };
-            if (!q.expectedOutput.trim()) return { valid: false, error: `La pregunta ${idx} necesita la salida esperada.` };
             if (!q.points || q.points <= 0) return { valid: false, error: `La pregunta ${idx} necesita puntos mayores a 0.` };
         }
         return { valid: true, error: null };
@@ -102,7 +122,6 @@ const CreateExam = () => {
             if (!q.title.trim()) e.title = "Obligatorio";
             if (!q.description.trim()) e.description = "Obligatorio";
             if (!q.solutionExample.trim()) e.solutionExample = "Obligatorio";
-            if (!q.expectedOutput.trim()) e.expectedOutput = "Obligatorio";
             if (!q.points || q.points <= 0) e.points = "Debe ser > 0";
             if (Object.keys(e).length > 0) qErrors[q.id] = e;
         });
@@ -127,7 +146,7 @@ const CreateExam = () => {
             questions: questions.map(q => ({
                 QuestionTitle: q.title,
                 QuestionText: q.description,
-                ExpectedOutput: q.expectedOutput ? { text: q.expectedOutput } : null,
+                ExpectedOutput: q.expectedOutput,
                 SolutionExample: q.solutionExample,
                 Value: q.points || 0,
             })),
@@ -157,7 +176,7 @@ const CreateExam = () => {
 
     const handleGenerateQuestions = async () => {
         if (!databaseID) {
-            setErrorMsg("Seleccioná una base de datos antes de generar preguntas con IA.");
+            setErrorMsg("Selecciona una base de datos antes de generar preguntas con IA.");
             return;
         }
         setGenerating(true);
@@ -176,7 +195,7 @@ const CreateExam = () => {
                 title: q.QuestionTitle,
                 description: q.QuestionText,
                 solutionExample: q.SolutionExample,
-                expectedOutput: "",
+                expectedOutput: q.ExpectedOutput?.rows ?? null,
                 points: q.Value || 10,
             })));
         } catch (err) {
@@ -245,7 +264,7 @@ const CreateExam = () => {
 
                 {errorMsg && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 rounded-xl border border-destructive/30 bg-destructive/10 px-5 py-4 shadow-sm flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
                             <X className="h-4 w-4 text-destructive" />
                         </div>
                         <p className="text-sm font-medium text-destructive">{errorMsg}</p>
@@ -318,7 +337,7 @@ const CreateExam = () => {
                                 {/* Aviso fecha en el pasado */}
                                 {deadlineDate && deadlineTime && new Date(`${deadlineDate}T${deadlineTime}:00`) < new Date() && (
                                     <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-warning/10 border border-warning/20">
-                                        <Clock className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+                                        <Clock className="h-3.5 w-3.5 text-warning shrink-0" />
                                         <p className="text-xs font-medium text-warning">La fecha y hora de inicio ya pasaron. Los estudiantes no podrán acceder al examen.</p>
                                     </div>
                                 )}
@@ -516,27 +535,34 @@ const CreateExam = () => {
                                                     {questionErrors[question.id]?.solutionExample && <p className="text-xs text-destructive">{questionErrors[question.id].solutionExample}</p>}
                                                 </div>
 
-                                                {/* Salida esperada */}
+                                                {/* Filas esperadas + preview */}
                                                 <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
-                                                    <div className="flex items-center mb-2">
-                                                        <div className="flex gap-1.5 mr-2">
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex gap-1.5 mr-2">
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            </div>
+                                                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                                Filas Esperadas
+                                                            </Label>
                                                         </div>
-                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                            Salida en Pantalla (Tabla)
-                                                        </Label>
+                                                        {question.expectedOutput !== null && (
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                                {question.expectedOutput} filas
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    <Textarea
-                                                        placeholder="Columna1 | Columna2&#10;Dato1    | Dato2"
-                                                        rows={4}
-                                                        value={question.expectedOutput}
-                                                        onChange={e => { updateQuestionField(question.id, "expectedOutput", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], expectedOutput: undefined } })); }}
-                                                        className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: '#34d399', lineHeight: '1.6' }}
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="0"
+                                                        value={question.expectedOutput ?? ""}
+                                                        onChange={e => updateQuestionField(question.id, "expectedOutput", e.target.value === "" ? null : Number(e.target.value))}
+                                                        className="w-full bg-transparent border-none p-0 focus:outline-none text-sm text-emerald-400 font-bold"
+                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace' }}
                                                     />
-                                                    {questionErrors[question.id]?.expectedOutput && <p className="text-xs text-destructive">{questionErrors[question.id].expectedOutput}</p>}
                                                 </div>
 
                                             </div>
@@ -610,7 +636,7 @@ const CreateExam = () => {
                             {examType === "pseudocode" ? (
                                 <div className="flex items-center gap-3.5 p-3.5 rounded-xl"
                                     style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.5)" }}>
-                                    <div className="relative w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                                    <div className="relative w-4 h-4 rounded-full flex items-center justify-center shrink-0"
                                         style={{ borderColor: "#6366f1", border: "1px solid #6366f1" }}>
                                         <div className="w-2 h-2 rounded-full bg-primary" />
                                     </div>
@@ -621,35 +647,36 @@ const CreateExam = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-2.5">
-                                    {[
-                                        { id: "", label: "Sin base de datos", sub: "Preguntas teóricas / libres" },
-                                        { id: "db-usuarios", label: "Usuarios DB", sub: "Esquema importado" },
-                                        { id: "db-productos", label: "Productos DB", sub: "Esquema importado" },
-                                        { id: "db-biblioteca", label: "Biblioteca DB", sub: "Esquema importado" },
-                                    ].map(db => (
-                                        <button
-                                            key={db.id}
-                                            onClick={() => setDatabaseID(db.id)}
-                                            className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
-                                            style={{
-                                                background: databaseID === db.id ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
-                                                border: databaseID === db.id ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.05)',
-                                            }}
-                                        >
-                                            <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0"
-                                                style={{ borderColor: databaseID === db.id ? '#6366f1' : '' }}>
-                                                {databaseID === db.id && (
-                                                    <motion.div layoutId="dbIndicator" className="w-2 h-2 rounded-full bg-primary" />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className={`text-sm font-bold transition-colors ${databaseID === db.id ? 'text-primary' : 'text-foreground group-hover:text-primary/70'}`}>
-                                                    {db.label}
-                                                </p>
-                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{db.sub}</p>
-                                            </div>
-                                        </button>
-                                    ))}
+                                    {dbLoading ? (
+                                        <p className="text-xs text-muted-foreground px-1">Cargando bases de datos...</p>
+                                    ) : (
+                                        [{ DatabaseID: "", Name: "Sin base de datos", Description: "Preguntas teóricas / libres" }, ...databases].map(db => (
+                                            <button
+                                                key={db.DatabaseID}
+                                                onClick={() => setDatabaseID(db.DatabaseID)}
+                                                className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
+                                                style={{
+                                                    background: databaseID === db.DatabaseID ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
+                                                    border: databaseID === db.DatabaseID ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.05)',
+                                                }}
+                                            >
+                                                <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center shrink-0"
+                                                    style={{ borderColor: databaseID === db.DatabaseID ? '#6366f1' : '' }}>
+                                                    {databaseID === db.DatabaseID && (
+                                                        <motion.div layoutId="dbIndicator" className="w-2 h-2 rounded-full bg-primary" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className={`text-sm font-bold transition-colors ${databaseID === db.DatabaseID ? 'text-primary' : 'text-foreground group-hover:text-primary/70'}`}>
+                                                        {db.Name}
+                                                    </p>
+                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                                                        {db.Description || "Base de datos importada"}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -676,7 +703,7 @@ const CreateExam = () => {
                                                 : '1px solid rgba(255,255,255,0.05)',
                                         }}
                                     >
-                                        <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0"
+                                        <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center shrink-0"
                                             style={{ borderColor: selectedGroup === group.id ? '#6366f1' : '' }}>
                                             {selectedGroup === group.id && (
                                                 <div className="w-2 h-2 rounded-full bg-primary" />
