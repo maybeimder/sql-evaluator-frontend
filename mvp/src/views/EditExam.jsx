@@ -159,8 +159,8 @@ const EditExam = () => {
 
         try {
             setSaving(true);
-            const res = await fetch(`${API_URL}/exams/${id}`, {
-                method: "PATCH",
+            const res = await fetch(`${API_URL}/exams/id/${id}`, {
+                method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${accessToken}`,
