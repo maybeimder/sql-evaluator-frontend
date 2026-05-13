@@ -43,13 +43,20 @@ const ExamEvaluator = () => {
 
     const handleRunQuery = () => {
         setIsExecuting(true);
+        setComparisonResult(null);
         const start = performance.now();
         setTimeout(() => {
-            setOutput("✓ Consulta ejecutada correctamente\n\n3 registros encontrados:\n\nid | nombre        | email              | edad\n1  | Ana García    | ana@email.com      | 24\n2  | Luis Pérez    | luis@email.com     | 31\n5  | María López   | maria@email.com    | 22");
+            const resultado = "✓ Consulta ejecutada correctamente\n\n3 registros encontrados:\n\nid | nombre        | email              | edad\n1  | Ana García    | ana@email.com      | 24\n2  | Luis Pérez    | luis@email.com     | 31\n5  | María López   | maria@email.com    | 22";
+            setOutput(resultado);
             setIsExecuting(false);
             const end = performance.now();
             const elapsed = end - start;
             setExecutionTime(elapsed < 1000 ? `${elapsed.toFixed(0)}ms` : `${(elapsed / 1000).toFixed(2)}s`);
+
+            // SCRUM-130 — Comparar salida con esperada
+            const outputNormalized = resultado.toLowerCase().replace(/\s+/g, " ").trim();
+            const expectedNormalized = mockQuestion.expectedOutput.toLowerCase().replace(/\s+/g, " ").trim();
+            setComparisonResult(outputNormalized.includes(expectedNormalized) ? "correct" : "incorrect");
         }, 400);
     };
 
@@ -69,6 +76,8 @@ const ExamEvaluator = () => {
     const [submitError, setSubmitError] = useState("");
     const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
 
+    const [comparisonResult, setComparisonResult] = useState(null); // null | 'correct' | 'incorrect'
+
     const handleSubmitExam = async () => {
         if (!sqlCode.trim()) {
             setSubmitError("No puedes enviar sin escribir una consulta.");
@@ -85,7 +94,7 @@ const ExamEvaluator = () => {
             // });
             await new Promise(resolve => setTimeout(resolve, 1000)); // simulación
             setSubmitSuccess(true);
-            setTimeout(() => navigate("/preview/student"), 2000);
+            setTimeout(() => navigate("/dashboard/student"), 2000);
         } catch {
             setSubmitError("Error al enviar el examen. Intenta de nuevo.");
         } finally {
@@ -328,36 +337,92 @@ const ExamEvaluator = () => {
                                 <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
                                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consola de Salida</span>
                             </div>
-                            {executionTime !== null && (
-                                <span className="text-[10px] font-mono text-muted-foreground/70 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                                    {executionTime}
-                                </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {/* Resultado de comparación */}
+                                {comparisonResult && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border"
+                                        style={comparisonResult === "correct" ? {
+                                            background: 'rgba(52,211,153,0.1)',
+                                            border: '1px solid rgba(52,211,153,0.3)',
+                                            color: '#34d399'
+                                        } : {
+                                            background: 'rgba(248,113,113,0.1)',
+                                            border: '1px solid rgba(248,113,113,0.3)',
+                                            color: '#f87171'
+                                        }}
+                                    >
+                                        {comparisonResult === "correct" ? (
+                                            <><CheckCircle2 className="h-3 w-3" /> Correcto</>
+                                        ) : (
+                                            <><span>✕</span> Incorrecto</>
+                                        )}
+                                    </motion.div>
+                                )}
+                                {executionTime !== null && (
+                                    <span className="text-[10px] font-mono text-muted-foreground/70 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                                        {executionTime}
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         {/* Console Output Area */}
                         <div className="flex-1 p-4 overflow-y-auto custom-scrollbar relative">
                             <AnimatePresence mode="wait">
-                                {output ? (
+                                {output && comparisonResult && (
                                     <motion.div
-                                        key="output"
-                                        initial={{ opacity: 0, y: 5 }}
+                                        initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="font-mono text-[13px]"
+                                        transition={{ delay: 0.2 }}
+                                        className="mt-4 rounded-xl border p-4"
+                                        style={comparisonResult === "correct" ? {
+                                            background: 'rgba(52,211,153,0.05)',
+                                            borderColor: 'rgba(52,211,153,0.2)'
+                                        } : {
+                                            background: 'rgba(248,113,113,0.05)',
+                                            borderColor: 'rgba(248,113,113,0.2)'
+                                        }}
                                     >
-                                        <pre className="text-[#a78bfa] whitespace-pre-wrap leading-relaxed">
-                                            {output}
-                                        </pre>
-                                    </motion.div>
-                                ) : (
-                                    <motion.div
-                                        key="empty"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50"
-                                    >
-                                        <Terminal className="h-8 w-8 mb-2 opacity-50" />
-                                        <p className="text-xs font-medium">Esperando ejecución...</p>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            {comparisonResult === "correct" ? (
+                                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                            ) : (
+                                                <span className="text-destructive text-sm">✕</span>
+                                            )}
+                                            <span className="text-xs font-bold uppercase tracking-wider"
+                                                style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
+                                                {comparisonResult === "correct"
+                                                    ? "¡Tu consulta produce la salida esperada!"
+                                                    : "Tu salida no coincide con la esperada"}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                                                    Salida esperada
+                                                </p>
+                                                <div className="bg-black/30 rounded-lg p-3 border border-white/5">
+                                                    <code className="text-[12px] font-mono text-success/80">
+                                                        {mockQuestion.expectedOutput}
+                                                    </code>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                                                    Tu salida
+                                                </p>
+                                                <div className="bg-black/30 rounded-lg p-3 border border-white/5">
+                                                    <code className="text-[12px] font-mono"
+                                                        style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
+                                                        {output.split('\n').slice(0, 4).join('\n')}
+                                                    </code>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>

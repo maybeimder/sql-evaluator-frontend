@@ -178,7 +178,7 @@ const StudentsList = () => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.05 }}
                           key={student.id}
-                          onClick={() => navigate(`/preview/student/${student.id}`)}
+                          onClick={() => navigate(`/student/${student.id}`)}
                           className="group grid grid-cols-[2.5fr_2fr_1.5fr_1fr_1fr_1fr] px-8 py-5 items-center hover:bg-white/5 transition-all duration-300 cursor-pointer relative"
                         >
                           {/* Línea indicadora on hover */}

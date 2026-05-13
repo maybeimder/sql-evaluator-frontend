@@ -256,7 +256,7 @@ const DashboardAdmin = () => {
                                                                 size="icon"
                                                                 className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 active:scale-95 transition-all duration-200"
                                                                 title="Ver detalles"
-                                                                onClick={() => navigate("/preview/admin/teacher-detail", { state: { teacherId: user.id } })} //CAMBIAR RUTA DESPUÉS, SOLO PARA PRUEBAS
+                                                                onClick={() => navigate(`/teacher/${user.id}`, { state: { teacherId: user.id } })} 
                                                             >
                                                                 <Eye className="h-4 w-4" />
                                                             </Button>

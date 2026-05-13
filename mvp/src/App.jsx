@@ -32,19 +32,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* RUTAS TEMPORALES PARA PRUEBAS - quitar después */}
-            <Route path="/preview/teacher" element={<DashboardTeacher />} />
-            <Route path="/preview/student" element={<DashboardStudent />} />
-            <Route path="/preview/create-exam" element={<CreateExam />} />
-            <Route path="/preview/students" element={<StudentsList />} />
-            <Route path="/preview/databases" element={<DatabasesList />} />
-            <Route path="/preview/student/:id" element={<StudentDetail />} />
-            <Route path="/preview/exam-detail" element={<TeacherExamStudentDetail />} />
-            <Route path="/preview/admin" element={<DashboardAdmin />} />
-            <Route path="/preview/student/exams/:id" element={<ExamDetailStudent />} />
-            <Route path="/preview/exam" element={<ExamEvaluator />} />
-            <Route path="/preview/teacher-exam-detail" element={<TeacherExamDetail />} />
-            <Route path="/preview/admin/teacher-detail" element={<TeacherDetail />} />
 
 
             <Route path="/verify" element={<VerifyCode />} />

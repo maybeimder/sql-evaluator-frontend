@@ -113,6 +113,10 @@ const Login = ({ noPermission = false }) => {
                 new Promise((r) => setTimeout(r, 600)),
             ]);
             const data = await res.json().catch(() => ({}));
+
+            console.log("USER COMPLETO:", JSON.stringify(data.user, null, 2));
+            console.log("ROLES:", data.user?.Roles);
+
             if (!res.ok) throw new Error(data.message || "Credenciales inválidas");
             if (!data.accessToken) throw new Error("No se recibió accessToken del servidor.");
             login(data.accessToken, data.user);
@@ -272,35 +276,6 @@ const Login = ({ noPermission = false }) => {
                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         Iniciar sesión con Roble
                     </button>
-
-                    {/* SOLO PARA PRUEBAS VISUALES - quitar después */}
-                    <div className="mt-5 pt-5 border-t border-border/40 rounded-xl">
-                        <p className="text-[10px] font-bold text-muted-foreground/60 text-center mb-3 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block"></span>
-                            Modo previsualización
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block"></span>
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <button
-                                onClick={() => navigate("/preview/teacher")}
-                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 hover:border-primary/40 transition-all duration-200 font-medium cursor-pointer min-h-11 sm:min-h-0"
-                            >
-                                Ver Dashboard Profesor
-                            </button>
-                            <button
-                                onClick={() => navigate("/preview/student")}
-                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-success/20 bg-success/5 text-success hover:bg-success/15 hover:border-success/40 transition-all duration-200 font-medium cursor-pointer min-h-11 sm:min-h-0"
-                            >
-                                Ver Dashboard Estudiante
-                            </button>
-                            <button
-                                onClick={() => navigate("/preview/admin")}
-                                className="flex-1 py-2.5 sm:py-2 text-xs rounded-lg border border-accent/20 bg-accent/5 text-accent hover:bg-accent/15 hover:border-accent/40 transition-all duration-200 font-medium cursor-pointer min-h-11 sm:min-h-0"
-                            >
-                                Ver Dashboard Admin
-                            </button>
-                        </div>
-                    </div>
 
                     {/* Links */}
                     <div className="mt-6 text-center space-y-3">

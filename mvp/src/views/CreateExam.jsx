@@ -27,12 +27,19 @@ const CreateExam = () => {
     }]);
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
-    const [fieldErrors, setFieldErrors] = useState({});
-    const [questionErrors, setQuestionErrors] = useState({});
+    const [regenerating, setRegenerating] = useState({});
+
+    const [selectedGroup, setSelectedGroup] = useState("");
+    const mockGroups = [
+        { id: "g1", name: "Bases de Datos I — Grupo 1" },
+        { id: "g2", name: "Bases de Datos I — Grupo 2" },
+        { id: "g3", name: "Bases de Datos II — Grupo 1" },
+        { id: "g4", name: "Programación Avanzada — Grupo 1" },
+    ];
 
     const addQuestion = () => {
         setQuestions(prev => [...prev, {
-            id: Date.now(), // ID único para AnimatePresence
+            id: Date.now(),
             title: "", description: "",
             solutionExample: "", expectedOutput: "", points: 10,
         }]);
@@ -67,6 +74,10 @@ const CreateExam = () => {
     };
 
     const handleSaveExam = async () => {
+        console.log("=== INTENTANDO CREAR EXAMEN ===");
+        console.log("API_URL:", API_URL);
+        console.log("accessToken:", accessToken);
+
         setErrorMsg("");
         if (!accessToken) { setErrorMsg("No hay sesión activa."); navigate("/login"); return; }
 
@@ -103,6 +114,7 @@ const CreateExam = () => {
             Duration: Number(durationMinutes),
             DatabaseID: databaseID || null,
             AllowsRejoin: allowsRejoin,
+            GroupID: selectedGroup || null,
             questions: questions.map(q => ({
                 QuestionTitle: q.title,
                 QuestionText: q.description,
@@ -111,6 +123,8 @@ const CreateExam = () => {
                 Value: q.points || 0,
             })),
         };
+
+        console.log("[CreateExam] Payload:", JSON.stringify(payload, null, 2));
 
         try {
             setSaving(true);
@@ -121,6 +135,8 @@ const CreateExam = () => {
                 body: JSON.stringify(payload),
             });
             const data = await res.json().catch(() => ({}));
+            console.log("[CreateExam] Response status:", res.status);
+            console.log("[CreateExam] Response JSON:", data);
             if (!res.ok) throw new Error(data.message || `Error al crear el examen (${res.status})`);
             navigate("/dashboard/teacher");
         } catch (err) {
@@ -130,15 +146,42 @@ const CreateExam = () => {
         }
     };
 
+    const handleRegenerate = async (questionId, type) => {
+        setRegenerating(prev => ({ ...prev, [`${questionId}-${type}`]: true }));
+        try {
+            const res = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-20250514",
+                    max_tokens: 1000,
+                    messages: [{
+                        role: "user",
+                        content: type === "enunciado"
+                            ? `Genera un enunciado claro y conciso para una pregunta de examen SQL sobre: "${examTitle}". Solo devuelve el enunciado, sin explicaciones adicionales.`
+                            : `Genera la salida esperada en formato de tabla para este enunciado SQL: "${questions.find(q => q.id === questionId)?.description}". Formato: columnas separadas por | y filas en líneas separadas. Solo devuelve la tabla, sin explicaciones.`
+                    }]
+                })
+            });
+            const data = await res.json();
+            const generated = data.content?.[0]?.text || "";
+            if (type === "enunciado") {
+                updateQuestionField(questionId, "description", generated);
+            } else {
+                updateQuestionField(questionId, "expectedOutput", generated);
+            }
+        } catch (err) {
+            console.error("Error regenerando:", err);
+        } finally {
+            setRegenerating(prev => ({ ...prev, [`${questionId}-${type}`]: false }));
+        }
+    };
+
     const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
 
-    // Animations
     const containerVariants = {
         hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
-        }
+        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
     };
 
     const itemVariants = {
@@ -182,16 +225,11 @@ const CreateExam = () => {
             </header>
 
             <div className="container mx-auto px-4 sm:px-8 py-10">
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="show"
-                    className="mb-8"
-                >
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="mb-8">
                     <motion.p variants={itemVariants} className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Nuevo Examen SQL</motion.p>
                     <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Crear Evaluación</motion.h1>
                     <motion.p variants={itemVariants} className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                        Define las preguntas, la configuración de tiempo y la base de datos a usar. Construye tu evaluación de manera secuencial y estructurada.
+                        Define las preguntas, la configuración de tiempo y la base de datos a usar.
                     </motion.p>
                 </motion.div>
 
@@ -207,7 +245,7 @@ const CreateExam = () => {
                 {/* Layout 2 columnas */}
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8">
 
-                    {/* Columna izquierda (Contenido principal) */}
+                    {/* Columna izquierda */}
                     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
 
                         {/* Configuración General */}
@@ -226,9 +264,7 @@ const CreateExam = () => {
 
                             <div className="space-y-6 relative z-10">
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                                        Título del Examen
-                                    </Label>
+                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">Título del Examen</Label>
                                     <Input
                                         placeholder="ej: SQL Básico — Consultas SELECT y WHERE"
                                         value={examTitle}
@@ -239,11 +275,9 @@ const CreateExam = () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                                        Descripción / Instrucciones
-                                    </Label>
+                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">Descripción / Instrucciones</Label>
                                     <Textarea
-                                        placeholder="Provee una breve descripción o instrucciones iniciales para los estudiantes..."
+                                        placeholder="Provee una breve descripción o instrucciones iniciales..."
                                         rows={3}
                                         value={examDescription}
                                         onChange={e => setExamDescription(e.target.value)}
@@ -258,9 +292,7 @@ const CreateExam = () => {
                                         { label: "Duración (min)", id: "dur", type: "number", value: durationMinutes, setter: setDurationMinutes, errorKey: "durationMinutes" },
                                     ].map(field => (
                                         <div key={field.id} className="space-y-2">
-                                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                                                {field.label}
-                                            </Label>
+                                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">{field.label}</Label>
                                             <Input
                                                 type={field.type}
                                                 value={field.value}
@@ -322,6 +354,7 @@ const CreateExam = () => {
                                     >
                                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-primary/50 to-primary/10 rounded-l-3xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
+                                        {/* Header pregunta */}
                                         <div className="flex items-center justify-between mb-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="cursor-grab active:cursor-grabbing p-1.5 text-muted-foreground hover:bg-white/5 rounded-md transition-colors">
@@ -335,7 +368,11 @@ const CreateExam = () => {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => removeQuestion(question.id)}
+                                                    onClick={() => {
+                                                        if (window.confirm(`¿Eliminar la Pregunta #${index + 1}? Esta acción no se puede deshacer.`)) {
+                                                            removeQuestion(question.id);
+                                                        }
+                                                    }}
                                                     className="h-8 px-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group/btn"
                                                 >
                                                     <Trash2 className="h-4 w-4 sm:mr-1.5 group-hover/btn:scale-110 transition-transform" />
@@ -344,12 +381,13 @@ const CreateExam = () => {
                                             )}
                                         </div>
 
+                                        {/* Campos de la pregunta */}
                                         <div className="space-y-5 ml-2 sm:ml-6">
+
+                                            {/* Título y puntos */}
                                             <div className="grid grid-cols-1 md:grid-cols-[1fr_120px] gap-5">
                                                 <div className="space-y-2">
-                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                                                        Título de la pregunta
-                                                    </Label>
+                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Título de la pregunta</Label>
                                                     <Input
                                                         placeholder="ej: Filtro de clientes por país activo"
                                                         value={question.title}
@@ -359,9 +397,7 @@ const CreateExam = () => {
                                                     {questionErrors[question.id]?.title && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].title}</p>}
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1 text-primary/80">
-                                                        Valor (Pts)
-                                                    </Label>
+                                                    <Label className="text-[11px] font-bold text-primary/80 uppercase tracking-widest ml-1">Valor (Pts)</Label>
                                                     <Input
                                                         type="number"
                                                         value={question.points}
@@ -372,10 +408,25 @@ const CreateExam = () => {
                                                 </div>
                                             </div>
 
+                                            {/* Enunciado con botón regenerar */}
                                             <div className="space-y-2">
-                                                <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                                                    Enunciado / Contexto
-                                                </Label>
+                                                <div className="flex items-center justify-between ml-1">
+                                                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                        Enunciado / Contexto
+                                                    </Label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRegenerate(question.id, "enunciado")}
+                                                        disabled={regenerating[`${question.id}-enunciado`]}
+                                                        className="flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:underline disabled:opacity-50 transition-all"
+                                                    >
+                                                        {regenerating[`${question.id}-enunciado`] ? (
+                                                            <><div className="w-3 h-3 border border-primary/30 border-t-primary rounded-full animate-spin" />Generando...</>
+                                                        ) : (
+                                                            <>✦ Regenerar enunciado</>
+                                                        )}
+                                                    </button>
+                                                </div>
                                                 <Textarea
                                                     placeholder="Describe la tarea lógica o la consulta que debe resolverse..."
                                                     rows={2}
@@ -386,9 +437,11 @@ const CreateExam = () => {
                                                 {questionErrors[question.id]?.description && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].description}</p>}
                                             </div>
 
-                                            {/* Bloques de Código */}
+                                            {/* Bloques de código */}
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
-                                                <div className={`space-y-2 bg-black/20 p-4 rounded-2xl border relative overflow-hidden ${questionErrors[question.id]?.solutionExample ? 'border-destructive/50' : 'border-white/5'}`}>
+
+                                                {/* SQL solución */}
+                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className="flex gap-1.5 mr-2">
                                                             <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
@@ -410,16 +463,31 @@ const CreateExam = () => {
                                                     {questionErrors[question.id]?.solutionExample && <p className="text-xs text-destructive">{questionErrors[question.id].solutionExample}</p>}
                                                 </div>
 
-                                                <div className={`space-y-2 bg-black/20 p-4 rounded-2xl border relative overflow-hidden ${questionErrors[question.id]?.expectedOutput ? 'border-destructive/50' : 'border-white/5'}`}>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="flex gap-1.5 mr-2">
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                {/* Salida esperada con botón regenerar */}
+                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex gap-1.5 mr-2">
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            </div>
+                                                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                                Salida en Pantalla (Tabla)
+                                                            </Label>
                                                         </div>
-                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                            Salida en Pantalla (Tabla)
-                                                        </Label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRegenerate(question.id, "casos")}
+                                                            disabled={regenerating[`${question.id}-casos`]}
+                                                            className="flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:underline disabled:opacity-50 transition-all"
+                                                        >
+                                                            {regenerating[`${question.id}-casos`] ? (
+                                                                <><div className="w-3 h-3 border border-primary/30 border-t-primary rounded-full animate-spin" />Generando...</>
+                                                            ) : (
+                                                                <>✦ Regenerar casos</>
+                                                            )}
+                                                        </button>
                                                     </div>
                                                     <Textarea
                                                         placeholder="Columna1 | Columna2&#10;Dato1    | Dato2"
@@ -431,13 +499,14 @@ const CreateExam = () => {
                                                     />
                                                     {questionErrors[question.id]?.expectedOutput && <p className="text-xs text-destructive">{questionErrors[question.id].expectedOutput}</p>}
                                                 </div>
+
                                             </div>
                                         </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
 
-                            {/* Botón flotante para agregar pregunta */}
+                            {/* Botón agregar pregunta */}
                             <motion.div layout>
                                 <button
                                     onClick={addQuestion}
@@ -450,12 +519,13 @@ const CreateExam = () => {
                                 </button>
                             </motion.div>
                         </div>
+
                     </motion.div>
 
                     {/* Columna derecha (Sidebar) */}
                     <motion.div variants={itemVariants} className="space-y-6">
 
-                        {/* Panel de Resumen (Sticky) */}
+                        {/* Panel de Resumen */}
                         <div className="bg-card/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl xl:sticky xl:top-24">
                             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -492,7 +562,7 @@ const CreateExam = () => {
                             </Button>
                         </div>
 
-                        {/* Selección de Base de Datos */}
+                        {/* Base de Datos */}
                         <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6">
                             <div className="flex items-center gap-2 mb-5">
                                 <Database className="h-4 w-4 text-primary" />
@@ -511,12 +581,10 @@ const CreateExam = () => {
                                         className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
                                         style={{
                                             background: databaseID === db.id ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
-                                            border: databaseID === db.id
-                                                ? '1px solid rgba(99,102,241,0.5)'
-                                                : '1px solid rgba(255,255,255,0.05)',
+                                            border: databaseID === db.id ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.05)',
                                         }}
                                     >
-                                        <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0 transition-colors"
+                                        <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0"
                                             style={{ borderColor: databaseID === db.id ? '#6366f1' : '' }}>
                                             {databaseID === db.id && (
                                                 <motion.div layoutId="dbIndicator" className="w-2 h-2 rounded-full bg-primary" />
@@ -533,7 +601,50 @@ const CreateExam = () => {
                             </div>
                         </div>
 
+                        {/* Selector de Grupo */}
+                        <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6">
+                            <div className="flex items-center gap-2 mb-5">
+                                <span className="text-sm">👥</span>
+                                <span className="text-sm font-bold text-foreground">Curso o Grupo</span>
+                            </div>
+                            <div className="space-y-2.5">
+                                {mockGroups.map(group => (
+                                    <button
+                                        key={group.id}
+                                        type="button"
+                                        onClick={() => setSelectedGroup(
+                                            selectedGroup === group.id ? "" : group.id
+                                        )}
+                                        className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
+                                        style={{
+                                            background: selectedGroup === group.id ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
+                                            border: selectedGroup === group.id
+                                                ? '1px solid rgba(99,102,241,0.5)'
+                                                : '1px solid rgba(255,255,255,0.05)',
+                                        }}
+                                    >
+                                        <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0"
+                                            style={{ borderColor: selectedGroup === group.id ? '#6366f1' : '' }}>
+                                            {selectedGroup === group.id && (
+                                                <div className="w-2 h-2 rounded-full bg-primary" />
+                                            )}
+                                        </div>
+                                        <p className="text-xs font-medium truncate"
+                                            style={{ color: selectedGroup === group.id ? '#6366f1' : '#a5aad4' }}>
+                                            {group.name}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+                            {selectedGroup && (
+                                <p className="text-xs text-primary mt-3 ml-1">
+                                    ✓ {mockGroups.find(g => g.id === selectedGroup)?.name}
+                                </p>
+                            )}
+                        </div>
+
                     </motion.div>
+
                 </div>
             </div>
         </div>
