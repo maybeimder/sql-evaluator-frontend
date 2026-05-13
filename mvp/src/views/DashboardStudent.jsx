@@ -11,7 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const DashboardStudent = () => {
     const navigate = useNavigate();
-    const { accessToken, user } = useAuth();
+    const { accessToken, user, logout } = useAuth();
 
     const [exams, setExams] = useState([]);
     const [loadingExams, setLoadingExams] = useState(true);
