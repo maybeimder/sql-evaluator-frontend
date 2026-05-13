@@ -32,7 +32,8 @@ const CreateExam = () => {
     }]);
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
-    const [regenerating, setRegenerating] = useState({});
+    const [generating, setGenerating] = useState(false);
+    const [genDifficulty, setGenDifficulty] = useState("medium");
     const [fieldErrors, setFieldErrors] = useState({});
     const [questionErrors, setQuestionErrors] = useState({});
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -154,34 +155,34 @@ const CreateExam = () => {
         }
     };
 
-    const handleRegenerate = async (questionId, type) => {
-        setRegenerating(prev => ({ ...prev, [`${questionId}-${type}`]: true }));
+    const handleGenerateQuestions = async () => {
+        if (!databaseID) {
+            setErrorMsg("Seleccioná una base de datos antes de generar preguntas con IA.");
+            return;
+        }
+        setGenerating(true);
+        setErrorMsg("");
         try {
-            const res = await fetch("https://api.anthropic.com/v1/messages", {
+            const res = await fetch(`${API_URL}/databases/id/${databaseID}/generate-questions`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-20250514",
-                    max_tokens: 1000,
-                    messages: [{
-                        role: "user",
-                        content: type === "enunciado"
-                            ? `Genera un enunciado claro y conciso para una pregunta de examen SQL sobre: "${examTitle}". Solo devuelve el enunciado, sin explicaciones adicionales.`
-                            : `Genera la salida esperada en formato de tabla para este enunciado SQL: "${questions.find(q => q.id === questionId)?.description}". Formato: columnas separadas por | y filas en líneas separadas. Solo devuelve la tabla, sin explicaciones.`
-                    }]
-                })
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+                credentials: "include",
+                body: JSON.stringify({ quantity: questions.length, difficulty: genDifficulty }),
             });
             const data = await res.json();
-            const generated = data.content?.[0]?.text || "";
-            if (type === "enunciado") {
-                updateQuestionField(questionId, "description", generated);
-            } else {
-                updateQuestionField(questionId, "expectedOutput", generated);
-            }
+            if (!res.ok) throw new Error(data.error || `Error al generar preguntas (${res.status})`);
+            setQuestions(data.questions.map((q, i) => ({
+                id: Date.now() + i,
+                title: q.QuestionTitle,
+                description: q.QuestionText,
+                solutionExample: q.SolutionExample,
+                expectedOutput: "",
+                points: q.Value || 10,
+            })));
         } catch (err) {
-            console.error("Error regenerando:", err);
+            setErrorMsg(err.message || "Error al generar preguntas con IA");
         } finally {
-            setRegenerating(prev => ({ ...prev, [`${questionId}-${type}`]: false }));
+            setGenerating(false);
         }
     };
 
@@ -369,16 +370,41 @@ const CreateExam = () => {
                         </motion.div>
 
                         {/* Título Sección Preguntas */}
-                        <motion.div variants={itemVariants} className="flex items-center justify-between pt-4 pb-2 border-b border-white/10">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <LayoutList className="h-4 w-4 text-primary" />
+                        <motion.div variants={itemVariants} className="pt-4 pb-2 border-b border-white/10 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                        <LayoutList className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <h2 className="text-lg font-bold text-foreground">Banco de Preguntas</h2>
                                 </div>
-                                <h2 className="text-lg font-bold text-foreground">Banco de Preguntas</h2>
+                                <span className="text-xs font-semibold text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                                    {questions.length} {questions.length === 1 ? 'Pregunta' : 'Preguntas'}
+                                </span>
                             </div>
-                            <span className="text-xs font-semibold text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                                {questions.length} {questions.length === 1 ? 'Pregunta' : 'Preguntas'}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <select
+                                    value={genDifficulty}
+                                    onChange={e => setGenDifficulty(e.target.value)}
+                                    className="h-8 text-xs rounded-lg bg-black/20 border border-white/10 text-muted-foreground px-2 focus:outline-none focus:border-primary/50"
+                                >
+                                    <option value="easy">Fácil</option>
+                                    <option value="medium">Media</option>
+                                    <option value="hard">Difícil</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={handleGenerateQuestions}
+                                    disabled={generating}
+                                    className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg disabled:opacity-50 transition-all"
+                                >
+                                    {generating ? (
+                                        <><div className="w-3 h-3 border border-primary/30 border-t-primary rounded-full animate-spin" />Generando...</>
+                                    ) : (
+                                        <>✦ Generar con IA</>
+                                    )}
+                                </button>
+                            </div>
                         </motion.div>
 
                         {/* Lista de Preguntas */}
@@ -447,24 +473,12 @@ const CreateExam = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Enunciado con botón regenerar */}
+                                            {/* Enunciado */}
                                             <div className="space-y-2">
-                                                <div className="flex items-center justify-between ml-1">
+                                                <div className="flex items-center ml-1">
                                                     <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
                                                         Enunciado / Contexto
                                                     </Label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRegenerate(question.id, "enunciado")}
-                                                        disabled={regenerating[`${question.id}-enunciado`]}
-                                                        className="flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:underline disabled:opacity-50 transition-all"
-                                                    >
-                                                        {regenerating[`${question.id}-enunciado`] ? (
-                                                            <><div className="w-3 h-3 border border-primary/30 border-t-primary rounded-full animate-spin" />Generando...</>
-                                                        ) : (
-                                                            <>✦ Regenerar enunciado</>
-                                                        )}
-                                                    </button>
                                                 </div>
                                                 <Textarea
                                                     placeholder="Describe la tarea lógica o la consulta que debe resolverse..."
@@ -502,31 +516,17 @@ const CreateExam = () => {
                                                     {questionErrors[question.id]?.solutionExample && <p className="text-xs text-destructive">{questionErrors[question.id].solutionExample}</p>}
                                                 </div>
 
-                                                {/* Salida esperada con botón regenerar */}
+                                                {/* Salida esperada */}
                                                 <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="flex gap-1.5 mr-2">
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            </div>
-                                                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                                Salida en Pantalla (Tabla)
-                                                            </Label>
+                                                    <div className="flex items-center mb-2">
+                                                        <div className="flex gap-1.5 mr-2">
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRegenerate(question.id, "casos")}
-                                                            disabled={regenerating[`${question.id}-casos`]}
-                                                            className="flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:underline disabled:opacity-50 transition-all"
-                                                        >
-                                                            {regenerating[`${question.id}-casos`] ? (
-                                                                <><div className="w-3 h-3 border border-primary/30 border-t-primary rounded-full animate-spin" />Generando...</>
-                                                            ) : (
-                                                                <>✦ Regenerar casos</>
-                                                            )}
-                                                        </button>
+                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                            Salida en Pantalla (Tabla)
+                                                        </Label>
                                                     </div>
                                                     <Textarea
                                                         placeholder="Columna1 | Columna2&#10;Dato1    | Dato2"
