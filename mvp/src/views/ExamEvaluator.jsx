@@ -1,51 +1,29 @@
 import { Button } from "@/components/ui/button";
 import { Database, Play, CheckCircle2, LogOut, Code2, Terminal, ChevronLeft, ChevronRight, FileText, Database as DbIcon, Info, Clock, ChevronDown, ChevronUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
-import { useParams } from "react-router-dom";
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 const ExamEvaluator = () => {
     const navigate = useNavigate();
+    const { state } = useLocation();
+    const examID = state?.examID ?? null;
+    const { accessToken } = useAuth();
     const [sqlCode, setSqlCode] = useState("SELECT * FROM usuarios WHERE edad > 18;");
     const [output, setOutput] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
     const [remainingTime, setRemainingTime] = useState(60 * 60);
     const [executionTime, setExecutionTime] = useState(null);
     const timerRef = useRef(null);
-    const [mockQuestion,setMockQuestion] = useState(null);
-    const { examID } = useParams();
-    const [questions, setQuestions] = useState([]);
-    const [loading, setLoading]     = useState(true);
-    const token = localStorage.getItem("accessToken");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
-    const [submitError, setSubmitError] = useState("");
-    const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
-    const [comparisonResult, setComparisonResult] = useState(null);
 
-    useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        console.log(token);
-        fetch(`${API_URL}/exams/id/${examID}/questions`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        .then(r => r.json())
-        .then(data => {
-            setQuestions(data);
-            setMockQuestion({
-                title: data.questions[0].QuestionTitle,
-                description: data.questions[0].QuestionText,
-                expectedOutput: data.questions[0].ExpectedOutput?.text ?? data.questions[0].ExpectedOutput,
-                points: data.questions[0].Value,
-                type: "SQL"
-            }); // Para esta demo, solo usamos la primera pregunta
-            setLoading(false);
-        });
-    }, [examID]);
+    const mockQuestion = {
+        title: "Consulta de Usuarios Mayores de Edad",
+        description: "Escribe una consulta SQL que devuelva todos los usuarios mayores de 18 años. La tabla se llama 'usuarios' y tiene las columnas: id, nombre, email, edad.",
+        expectedOutput: "3 registros encontrados",
+        points: 10,
+        type: "SQL"
+    };
 
     useEffect(() => {
         timerRef.current = setInterval(() => {
@@ -59,8 +37,6 @@ const ExamEvaluator = () => {
         }, 1000);
         return () => clearInterval(timerRef.current);
     }, []);
-
-    if (loading) return <p>Cargando preguntas...</p>;
 
     const formatTime = (seconds) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -80,9 +56,9 @@ const ExamEvaluator = () => {
             const elapsed = end - start;
             setExecutionTime(elapsed < 1000 ? `${elapsed.toFixed(0)}ms` : `${(elapsed / 1000).toFixed(2)}s`);
 
-            // SCRUM-130 — Comparar salida con esperada
+            // Comparar salida con esperada
             const outputNormalized = resultado.toLowerCase().replace(/\s+/g, " ").trim();
-            const expectedNormalized = mockQuestion.expectedOutput.toLowerCase().replace(/\s+/g, " ").trim();
+            const expectedNormalized = question.expectedOutput.toLowerCase().replace(/\s+/g, " ").trim();
             setComparisonResult(outputNormalized.includes(expectedNormalized) ? "correct" : "incorrect");
         }, 400);
     };
@@ -121,6 +97,35 @@ const ExamEvaluator = () => {
             setIsSubmitting(false);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-[#0d0f1a]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <p className="text-sm text-muted-foreground">Cargando examen...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-[#0d0f1a]">
+                <div className="flex flex-col items-center gap-4 text-center px-6">
+                    <p className="text-sm text-destructive">{error}</p>
+                    <Button
+                        onClick={() => navigate("/dashboard/student")}
+                        variant="outline"
+                        size="sm"
+                        className="border-white/10 text-muted-foreground hover:text-white"
+                    >
+                        Volver al inicio
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="h-screen flex flex-col bg-[#0d0f1a] overflow-hidden font-sans text-foreground" style={{ minHeight: '100dvh' }}>
@@ -216,7 +221,7 @@ const ExamEvaluator = () => {
                     >
                         <span className="text-xs font-bold text-primary tracking-widest uppercase">Pregunta 1 de 5</span>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-foreground bg-white/5 px-2 py-0.5 rounded-full border border-white/10">{mockQuestion.points} pts</span>
+                            <span className="text-xs font-bold text-foreground bg-white/5 px-2 py-0.5 rounded-full border border-white/10">{question.points} pts</span>
                             {questionPanelOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                         </div>
                     </div>
@@ -230,11 +235,11 @@ const ExamEvaluator = () => {
                                     Pregunta 1 de 5
                                 </span>
                                 <span className="flex items-center gap-1 text-xs font-bold text-foreground bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
-                                    {mockQuestion.points} <span className="text-muted-foreground font-normal">pts</span>
+                                    {question.points} <span className="text-muted-foreground font-normal">pts</span>
                                 </span>
                             </div>
                             <h2 className="text-lg font-bold text-foreground leading-tight mb-2">
-                                {mockQuestion.title}
+                                {question.title}
                             </h2>
                             <div className="flex items-center gap-1.5">
                                 <span className="flex h-2 w-2 relative">
@@ -242,7 +247,7 @@ const ExamEvaluator = () => {
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                                 </span>
                                 <span className="text-[10px] font-bold text-blue-400 tracking-wider uppercase">
-                                    {mockQuestion.type}
+                                    {question.type}
                                 </span>
                             </div>
                         </div>
@@ -251,11 +256,11 @@ const ExamEvaluator = () => {
                         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar">
 
                             <div className="text-sm text-foreground/90 leading-relaxed">
-                                <p>{mockQuestion.description}</p>
+                                <p>{question.description}</p>
                             </div>
 
                             {/* Esquema de Tabla (Solo si es SQL) */}
-                            {mockQuestion.type === "SQL" && (
+                            {question.type === "SQL" && (
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-1.5 mb-1">
                                         <DbIcon className="h-3.5 w-3.5 text-primary/60" />
@@ -284,7 +289,7 @@ const ExamEvaluator = () => {
                                 <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-green-500/50 transition-colors"></div>
                                     <code className="text-[13px] text-green-400/90 font-mono pl-2 block break-all">
-                                        {mockQuestion.expectedOutput}
+                                        {question.expectedOutput}
                                     </code>
                                 </div>
                             </div>
@@ -427,7 +432,7 @@ const ExamEvaluator = () => {
                                                 </p>
                                                 <div className="bg-black/30 rounded-lg p-3 border border-white/5">
                                                     <code className="text-[12px] font-mono text-success/80">
-                                                        {mockQuestion.expectedOutput}
+                                                        {question.expectedOutput}
                                                     </code>
                                                 </div>
                                             </div>
