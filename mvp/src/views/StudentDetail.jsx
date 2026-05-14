@@ -14,6 +14,8 @@ const StudentDetail = () => {
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [examHistory, setExamHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -23,7 +25,7 @@ const StudentDetail = () => {
           credentials: "include",
         });
         const data = await res.json();
-        if (res.ok) setStudent(data.user ?? data);
+        if (res.ok) setStudent(data.student ?? data.user ?? data);
       } catch (err) {
         console.error("[StudentDetail] Error cargando estudiante:", err);
       } finally {
@@ -33,11 +35,23 @@ const StudentDetail = () => {
     fetchStudent();
   }, [id, accessToken]);
 
-  const examHistory = [
-    { id: 1, exam: "SQL Básico — SELECT", score: 90, date: "20/03/2024", status: "Aprobado" },
-    { id: 2, exam: "JOIN y Relaciones", score: 85, date: "18/03/2024", status: "Aprobado" },
-    { id: 3, exam: "Funciones Agregadas", score: 62, date: "15/03/2024", status: "Reprobado" },
-  ];
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(`${API_URL}/users/id/${id}/history`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) setExamHistory(data.history ?? []);
+      } catch (err) {
+        console.error("[StudentDetail] Error cargando historial:", err);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [id, accessToken]);
 
   const getScoreStyle = (score) => {
     if (score >= 80) return { color: "#34d399", bg: "rgba(52,211,153,0.1)", border: "rgba(52,211,153,0.2)" };
@@ -47,31 +61,30 @@ const StudentDetail = () => {
 
   const getStatusStyle = (status) => {
     if (status === "Aprobado") return { color: "#34d399", bg: "rgba(52,211,153,0.1)" };
+    if (status === "Pendiente") return { color: "#94a3b8", bg: "rgba(148,163,184,0.1)" };
     return { color: "#f87171", bg: "rgba(248,113,113,0.1)" };
   };
+
+  const name = student?.Name ?? student?.name ?? "—";
+  const email = student?.Email ?? student?.email ?? "—";
+  const enrollmentDate = student?.CreatedAt
+    ? new Date(student.CreatedAt).toLocaleDateString("es-CO")
+    : (student?.enrollmentDate ?? "—");
+
+  const scoredExams = examHistory.filter(e => e.score !== null);
+  const examsTaken = historyLoading ? "—" : examHistory.length;
+  const averageScore = scoredExams.length > 0
+    ? Math.round(scoredExams.reduce((sum, e) => sum + e.score, 0) / scoredExams.length)
+    : 0;
+
+  const initials = name !== "—" ? name.split(" ").map(w => w[0]).slice(0, 2).join("") : "?";
+  const avgStyle = getScoreStyle(averageScore);
 
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <p className="text-sm text-muted-foreground">Cargando estudiante...</p>
     </div>
   );
-
-  if (!student) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <p className="text-sm text-destructive">No se pudo cargar el estudiante.</p>
-    </div>
-  );
-
-  const name = student.Name ?? student.name ?? "—";
-  const email = student.Email ?? student.email ?? "—";
-  const enrollmentDate = student.CreatedAt
-    ? new Date(student.CreatedAt).toLocaleDateString("es-CO")
-    : (student.enrollmentDate ?? "—");
-  const examsTaken = student.ExamsTaken ?? student.examsTaken ?? 0;
-  const averageScore = student.AverageScore ?? student.averageScore ?? 0;
-
-  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("");
-  const avgStyle = getScoreStyle(averageScore);
 
   // Animations
   const containerVariants = {
@@ -126,7 +139,7 @@ const StudentDetail = () => {
               {/* Header Info */}
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 flex-1 text-center sm:text-left">
                 {/* Avatar grande */}
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-3xl font-extrabold text-primary flex-shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-3xl font-extrabold text-primary shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-300">
                   {initials}
                 </div>
                 
@@ -187,7 +200,7 @@ const StudentDetail = () => {
                 </div>
               </div>
               <span className="text-xs font-semibold text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5 hidden sm:inline-block">
-                {examHistory.length} registros
+                {historyLoading ? "..." : `${examHistory.length} registros`}
               </span>
             </div>
 
@@ -200,7 +213,11 @@ const StudentDetail = () => {
             </div>
 
             <div className="divide-y divide-white/5">
-              {examHistory.length === 0 ? (
+              {historyLoading ? (
+                <div className="px-6 py-16 text-center">
+                  <p className="text-sm text-muted-foreground animate-pulse">Cargando historial...</p>
+                </div>
+              ) : examHistory.length === 0 ? (
                   <div className="px-6 py-16 text-center">
                     <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
                         <FileText className="h-8 w-8 text-muted-foreground/50" />
@@ -210,27 +227,27 @@ const StudentDetail = () => {
                   </div>
               ) : (
                 examHistory.map((exam, idx) => {
-                    const scoreStyle = getScoreStyle(exam.score);
+                    const scoreStyle = exam.score !== null ? getScoreStyle(exam.score) : { color: "#94a3b8", bg: "rgba(148,163,184,0.1)", border: "rgba(148,163,184,0.2)" };
                     const statusStyle = getStatusStyle(exam.status);
+                    const dotColor = exam.status === "Aprobado" ? "bg-success" : exam.status === "Pendiente" ? "bg-muted-foreground" : "bg-destructive";
                     return (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 + (idx * 0.05) }}
-                            key={exam.id}
-                            onClick={() => navigate(`/teacher/exams/${exam.id}/students/${id}`)}
+                            key={exam.examID}
+                            onClick={() => navigate(`/teacher/exams/${exam.examID}/students/${id}`)}
                             className="group flex flex-col sm:grid sm:grid-cols-[2.5fr_1fr_1fr_auto] gap-4 sm:gap-0 items-start sm:items-center px-6 sm:px-8 py-5 hover:bg-white/5 transition-all duration-300 cursor-pointer relative"
                         >
-                            {/* Línea indicadora on hover */}
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            
+
                             {/* Info del examen */}
                             <div>
                                 <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{exam.exam}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     <Calendar className="h-3 w-3 text-muted-foreground opacity-70" />
                                     <p className="text-xs text-muted-foreground font-medium">
-                                        {exam.date}
+                                        {exam.date ?? "—"}
                                     </p>
                                 </div>
                             </div>
@@ -241,7 +258,7 @@ const StudentDetail = () => {
                                     className="text-xs font-black px-2.5 py-1 rounded-md border inline-block"
                                     style={{ color: scoreStyle.color, background: scoreStyle.bg, borderColor: scoreStyle.border }}
                                 >
-                                    {exam.score}%
+                                    {exam.score !== null ? `${exam.score}%` : "—"}
                                 </span>
                             </div>
 
@@ -249,14 +266,14 @@ const StudentDetail = () => {
                             <div className="flex items-center gap-2">
                                 <span className="relative flex h-2 w-2">
                                     {exam.status === "Aprobado" && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>}
-                                    <span className={`relative inline-flex rounded-full h-2 w-2 ${exam.status === "Aprobado" ? "bg-success" : "bg-destructive"}`}></span>
+                                    <span className={`relative inline-flex rounded-full h-2 w-2 ${dotColor}`}></span>
                                 </span>
-                                <span className="text-xs font-bold tracking-wide" style={{ color: exam.status === "Aprobado" ? "#34d399" : "#f87171" }}>
+                                <span className="text-xs font-bold tracking-wide" style={{ color: statusStyle.color }}>
                                     {exam.status.toUpperCase()}
                                 </span>
                             </div>
 
-                            {/* Botón Acción (Flecha) */}
+                            {/* Flecha */}
                             <div className="flex justify-end self-end sm:self-auto w-full sm:w-auto mt-2 sm:mt-0">
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all sm:group-hover:translate-x-1">
                                     <ChevronRight className="h-5 w-5" />

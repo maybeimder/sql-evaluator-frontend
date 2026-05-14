@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
     function login(token, refreshToken, userData) {
         setAccessToken(token);
         setUser(userData);
-        localStorage.setItem("accessToken",  token);
+        localStorage.setItem("accessToken", token);
         localStorage.setItem("refreshToken", refreshToken);  // ← guardar
         localStorage.setItem("user", JSON.stringify(userData));
     }
@@ -40,15 +40,15 @@ export function AuthProvider({ children }) {
     // 🔄 REFRESH AUTOMÁTICO
     useEffect(() => {
         const interval = setInterval(async () => {
-        const storedRefresh = localStorage.getItem("refreshToken");
-        if (!storedRefresh) return logout();
+            const storedRefresh = localStorage.getItem("refreshToken");
+            if (!storedRefresh) return logout();
 
             try {
                 const res = await fetch(`${API_URL}/auth/refresh-token`, {
                     method: "POST",
-                    headers : { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body    : JSON.stringify({ refreshToken: storedRefresh }),
+                    body: JSON.stringify({ refreshToken: storedRefresh }),
 
                 });
 
@@ -64,6 +64,29 @@ export function AuthProvider({ children }) {
         }, 1000 * 60 * 10);
 
         return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        const originalFetch = window.fetch;
+
+        window.fetch = (url, options = {}) => {
+            // Solo interceptar llamadas a tu API
+            if (typeof url === "string" && url.startsWith(API_URL)) {
+                const freshToken = localStorage.getItem("accessToken");
+                options = {
+                    ...options,
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...options.headers,
+                        Authorization: `Bearer ${freshToken}`,
+                    },
+                };
+            }
+            return originalFetch(url, options);
+        };
+
+        // Restaurar al desmontar
+        return () => { window.fetch = originalFetch; };
     }, []);
 
     return (
