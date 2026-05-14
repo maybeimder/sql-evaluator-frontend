@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Database, Play, CheckCircle2, LogOut, Code2, Terminal, Database as DbIcon, Info, Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
-import { useParams, useLocation } from "react-router-dom";
+import { useAuth } from "../AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -12,7 +12,7 @@ const ExamEvaluator = () => {
     const navigate = useNavigate();
     const { examID } = useParams();
     const { state } = useLocation();
-    const token = localStorage.getItem("accessToken");
+    const { accessToken: token } = useAuth();
 
     const [sqlCode, setSqlCode] = useState("");
     const [answers, setAnswers] = useState({});
@@ -59,30 +59,25 @@ const ExamEvaluator = () => {
         })
         .then(r => r.json())
         .then(data => {
-            console.log("QUESTIONS RESPONSE:", data);
             setQuestionsArray(data.questions ?? []);
-            setAssignmentID(data.assignmentID ?? data.AssignmentID ?? null);
             setLoading(false);
         });
     }, [examID]);
 
-    // Fetch exam info (AllowsRejoin, Duration) — best-effort, student may not have access
+    // If assignmentID wasn't passed via router state, resolve it from the exam list
     useEffect(() => {
-        fetch(`${API_URL}/exams/id/${examID}`, {
+        if (assignmentID) return;
+        fetch(`${API_URL}/exams`, {
             headers: { Authorization: `Bearer ${token}` }
         })
-        .then(r => { if (!r.ok) return null; return r.json(); })
-        .then(data => {
-            if (!data) return;
-            const exam = data.exam ?? data;
-            setExamInfo(exam);
-            const saved = localStorage.getItem(`exam_timer_${examID}`);
-            if (!saved && exam.Duration) {
-                setRemainingTime(exam.Duration * 60);
-            }
+        .then(r => r.json())
+        .then((list) => {
+            const match = Array.isArray(list) ? list.find(e => e.ExamID === examID) : null;
+            if (match?.AssignmentID) setAssignmentID(match.AssignmentID);
         })
         .catch(() => {});
-    }, [examID]);
+    }, [examID, assignmentID]);
+
 
     // Timer — saves remaining seconds to localStorage on every tick
     useEffect(() => {
@@ -142,7 +137,7 @@ const ExamEvaluator = () => {
         setSubmitError("");
         try {
             const res = await fetch(`${API_URL}/assignments/id/${assignmentID ?? examID}/finish`, {
-                method: "GET",
+                method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
                 credentials: "include",
             });
