@@ -29,7 +29,10 @@ const CreateExam = () => {
     const [questions, setQuestions] = useState([{
         id: 1, title: "", description: "",
         solutionExample: "", expectedOutput: null, points: 10,
+        inputs: [], outputs: [],
     }]);
+    const [inputDrafts, setInputDrafts] = useState({});
+    const [outputDrafts, setOutputDrafts] = useState({});
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [generating, setGenerating] = useState(false);
@@ -72,7 +75,36 @@ const CreateExam = () => {
             id: Date.now(),
             title: "", description: "",
             solutionExample: "", expectedOutput: null, points: 10,
+            inputs: [], outputs: [],
         }]);
+    };
+
+    const addInput = (qid, value) => {
+        if (!value.trim()) return;
+        setQuestions(prev => prev.map(q =>
+            q.id === qid ? { ...q, inputs: [...(q.inputs ?? []), value.trim()] } : q
+        ));
+        setInputDrafts(d => ({ ...d, [qid]: "" }));
+    };
+
+    const removeInput = (qid, idx) => {
+        setQuestions(prev => prev.map(q =>
+            q.id === qid ? { ...q, inputs: q.inputs.filter((_, i) => i !== idx) } : q
+        ));
+    };
+
+    const addOutput = (qid, value) => {
+        if (!value.trim()) return;
+        setQuestions(prev => prev.map(q =>
+            q.id === qid ? { ...q, outputs: [...(q.outputs ?? []), value.trim()] } : q
+        ));
+        setOutputDrafts(d => ({ ...d, [qid]: "" }));
+    };
+
+    const removeOutput = (qid, idx) => {
+        setQuestions(prev => prev.map(q =>
+            q.id === qid ? { ...q, outputs: q.outputs.filter((_, i) => i !== idx) } : q
+        ));
     };
 
     const removeQuestion = (id) => {
@@ -142,11 +174,13 @@ const CreateExam = () => {
             Duration: Number(durationMinutes),
             DatabaseID: databaseID || null,
             AllowsRejoin: allowsRejoin,
+            Type: examType.toUpperCase(),
             GroupID: selectedGroup || null,
             questions: questions.map(q => ({
                 QuestionTitle: q.title,
                 QuestionText: q.description,
-                ExpectedOutput: q.expectedOutput,
+                ExpectedOutput: examType === "pseudocode" ? (q.outputs ?? []) : q.expectedOutput,
+                Inputs: examType === "pseudocode" ? (q.inputs ?? []) : undefined,
                 SolutionExample: q.solutionExample,
                 Value: q.points || 0,
             })),
@@ -535,7 +569,69 @@ const CreateExam = () => {
                                                     {questionErrors[question.id]?.solutionExample && <p className="text-xs text-destructive">{questionErrors[question.id].solutionExample}</p>}
                                                 </div>
 
-                                                {/* Filas esperadas + preview */}
+                                                {/* Filas esperadas / Arrays pseudocódigo */}
+                                                {examType === "pseudocode" ? (
+                                                    <div className="space-y-4 bg-black/20 p-4 rounded-2xl border border-white/5">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <div className="flex gap-1.5 mr-2">
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Casos de Prueba</span>
+                                                        </div>
+
+                                                        {/* Entradas */}
+                                                        <div>
+                                                            <Label className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest ml-1">Entradas [ ]</Label>
+                                                            <div className="flex flex-wrap gap-1.5 mt-2 min-h-7">
+                                                                {(question.inputs ?? []).map((val, i) => (
+                                                                    <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-mono font-bold">
+                                                                        {val}
+                                                                        <button type="button" onClick={() => removeInput(question.id, i)} className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity leading-none">×</button>
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                            <div className="flex gap-2 mt-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={inputDrafts[question.id] ?? ""}
+                                                                    onChange={e => setInputDrafts(d => ({ ...d, [question.id]: e.target.value }))}
+                                                                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addInput(question.id, inputDrafts[question.id] ?? ""); } }}
+                                                                    placeholder="Ej: 2"
+                                                                    className="flex-1 h-8 bg-transparent border-b border-white/10 focus:border-indigo-400/50 focus:outline-none text-sm font-mono text-foreground/80 px-1 transition-colors"
+                                                                />
+                                                                <button type="button" onClick={() => addInput(question.id, inputDrafts[question.id] ?? "")} className="h-8 w-8 flex items-center justify-center text-indigo-400 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/10 transition-colors text-base font-bold">+</button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="border-t border-white/5" />
+
+                                                        {/* Salida esperada */}
+                                                        <div>
+                                                            <Label className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest ml-1">Salida Esperada [ ]</Label>
+                                                            <div className="flex flex-wrap gap-1.5 mt-2 min-h-7">
+                                                                {(question.outputs ?? []).map((val, i) => (
+                                                                    <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
+                                                                        {val}
+                                                                        <button type="button" onClick={() => removeOutput(question.id, i)} className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity leading-none">×</button>
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                            <div className="flex gap-2 mt-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={outputDrafts[question.id] ?? ""}
+                                                                    onChange={e => setOutputDrafts(d => ({ ...d, [question.id]: e.target.value }))}
+                                                                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addOutput(question.id, outputDrafts[question.id] ?? ""); } }}
+                                                                    placeholder="Ej: 5"
+                                                                    className="flex-1 h-8 bg-transparent border-b border-white/10 focus:border-emerald-400/50 focus:outline-none text-sm font-mono text-foreground/80 px-1 transition-colors"
+                                                                />
+                                                                <button type="button" onClick={() => addOutput(question.id, outputDrafts[question.id] ?? "")} className="h-8 w-8 flex items-center justify-center text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-colors text-base font-bold">+</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
                                                 <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-2">
@@ -564,6 +660,7 @@ const CreateExam = () => {
                                                         style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace' }}
                                                     />
                                                 </div>
+                                                )}
 
                                             </div>
                                         </div>

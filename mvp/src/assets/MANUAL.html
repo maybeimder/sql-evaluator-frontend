@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PseudoJS — Manual de Sintaxis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Code+Pro:wght@400;600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f0f;
+  --bg2: #161616;
+  --bg3: #1e1e1e;
+  --bg4: #252525;
+  --border: #2a2a2a;
+  --border2: #333;
+  --text: #e8e3d8;
+  --text2: #a09a8e;
+  --text3: #665e54;
+  --amber: #d4a853;
+  --amber2: #e8c17a;
+  --amber-dim: #2a1f08;
+  --red: #c46c5a;
+  --green: #7aaa7a;
+  --blue: #6a9ec4;
+  --sidebar-w: 260px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Lora', Georgia, serif;
+  --font-mono: 'Source Code Pro', 'Fira Code', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.75;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ── */
+nav {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 0 0 2rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.nav-brand {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+}
+
+.nav-brand .logo {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: -0.01em;
+}
+
+.nav-brand .version {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.nav-group-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 0.9rem 1.25rem 0.35rem;
+}
+
+nav a {
+  display: block;
+  padding: 0.3rem 1.25rem 0.3rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text2);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  line-height: 1.4;
+}
+
+nav a:hover {
+  color: var(--text);
+  background: var(--bg3);
+  border-left-color: var(--border2);
+}
+
+nav a.active {
+  color: var(--amber);
+  border-left-color: var(--amber);
+  background: var(--amber-dim);
+}
+
+nav a.sub {
+  padding-left: 2.25rem;
+  font-size: 0.8rem;
+  color: var(--text3);
+}
+nav a.sub:hover { color: var(--text2); }
+nav a.sub.active { color: var(--amber2); }
+
+/* ── MAIN ── */
+main {
+  flex: 1;
+  max-width: 820px;
+  padding: 4rem 3.5rem 6rem 3rem;
+  min-width: 0;
+}
+
+/* ── HEADER ── */
+.doc-header {
+  margin-bottom: 3.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-header h1 {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.doc-header .subtitle {
+  font-size: 1.05rem;
+  color: var(--text2);
+  font-style: italic;
+  margin-bottom: 1.25rem;
+}
+
+.doc-header .meta {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  letter-spacing: 0.08em;
+}
+
+.badge.amber { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+
+/* ── SECTIONS ── */
+.section {
+  margin-bottom: 4rem;
+  scroll-margin-top: 2rem;
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+h2 .sec-num {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--amber);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--amber2);
+  margin: 2rem 0 0.75rem;
+  letter-spacing: -0.005em;
+}
+
+p {
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+p + p { margin-top: -0.25rem; }
+
+/* ── CALLOUTS ── */
+.note {
+  background: var(--bg3);
+  border-left: 3px solid var(--amber);
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9rem;
+  color: var(--text2);
+}
+
+.note strong { color: var(--amber2); font-style: normal; }
+
+.warn {
+  background: #1a1208;
+  border-left: 3px solid var(--red);
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9rem;
+  color: #b89080;
+}
+
+/* ── CODE ── */
+pre {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1rem 0 1.5rem;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+pre::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+/* syntax highlights */
+.kw  { color: #c88ed4; }  /* keywords */
+.fn  { color: #6eb5e0; }  /* functions */
+.str { color: #98c47a; }  /* strings */
+.num { color: #e0a060; }  /* numbers */
+.cmt { color: var(--text3); font-style: italic; }  /* comments */
+.op  { color: var(--amber2); }  /* operators */
+.typ { color: #7ab8c4; }  /* types */
+
+/* inline code */
+:not(pre) > code {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.83rem;
+  color: var(--amber2);
+}
+
+/* ── TABLES ── */
+.table-wrap { overflow-x: auto; margin: 1rem 0 1.5rem; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+}
+
+thead tr {
+  border-bottom: 1px solid var(--amber);
+}
+
+thead th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  padding: 0.5rem 0.9rem;
+  text-align: left;
+  font-weight: 400;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+tbody tr:hover { background: var(--bg3); }
+
+tbody td {
+  padding: 0.55rem 0.9rem;
+  color: var(--text2);
+  vertical-align: top;
+}
+
+tbody td:first-child {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--amber2);
+  white-space: nowrap;
+}
+
+tbody td code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--green);
+}
+
+/* ── KEYWORD GRID ── */
+.kw-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 1rem 0 1.5rem;
+}
+
+.kw-pill {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: #c88ed4;
+}
+
+/* ── PATTERN CARDS ── */
+.pattern-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.pattern-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pattern-card-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  padding: 0.5rem 1rem;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+
+.pattern-card pre {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* ── API CARD ── */
+.api-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin: 1rem 0;
+}
+
+.api-card .api-sig {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--blue);
+  margin-bottom: 0.5rem;
+}
+
+.api-card .api-desc {
+  font-size: 0.9rem;
+  color: var(--text2);
+  margin: 0;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── DIVIDER ── */
+hr.section-rule {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0;
+}
+
+/* ── TOC (inline) ── */
+.toc {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.toc-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 0.75rem;
+}
+
+.toc ol {
+  list-style: none;
+  counter-reset: toc;
+}
+
+.toc li {
+  counter-increment: toc;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+
+.toc li::before {
+  content: counter(toc, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  min-width: 1.8rem;
+}
+
+.toc a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: color 0.15s;
+}
+
+.toc a:hover { color: var(--amber2); }
+
+/* ── FOOTER ── */
+footer {
+  margin-top: 5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text3);
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 900px) {
+  nav { display: none; }
+  main { padding: 2rem 1.5rem 4rem; }
+  h2 { font-size: 1.4rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<nav id="sidebar">
+  <div class="nav-brand">
+    <div class="logo">PseudoJS</div>
+    <div class="version">Manual de Sintaxis · v1.0</div>
+  </div>
+
+  <div class="nav-group-label">Introducción</div>
+  <a href="#sec-estructura">1. Estructura general</a>
+  <a href="#sec-comentarios">2. Comentarios</a>
+
+  <div class="nav-group-label">Datos</div>
+  <a href="#sec-variables">3. Variables y tipos</a>
+  <a href="#sec-operadores">4. Operadores</a>
+
+  <div class="nav-group-label">I/O</div>
+  <a href="#sec-io">5. Entrada y salida</a>
+
+  <div class="nav-group-label">Control</div>
+  <a href="#sec-si">6.1 Si / Sino</a>
+  <a href="#sec-segun">6.2 Según</a>
+  <a href="#sec-mientras">6.3 Mientras</a>
+  <a href="#sec-para">6.4 Para</a>
+  <a href="#sec-repetir">6.5 Repetir</a>
+
+  <div class="nav-group-label">Avanzado</div>
+  <a href="#sec-arreglos">7. Arreglos</a>
+  <a href="#sec-funciones">8. Funciones</a>
+  <a href="#sec-builtins">9. Funciones integradas</a>
+
+  <div class="nav-group-label">Referencia</div>
+  <a href="#sec-ejemplos">10. Ejemplos completos</a>
+  <a href="#sec-errores">11. Errores comunes</a>
+  <a href="#sec-ref">12. Referencia rápida</a>
+</nav>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- HEADER -->
+  <div class="doc-header">
+    <h1>PseudoJS</h1>
+    <p class="subtitle">Manual de referencia del dialecto de pseudocódigo</p>
+    <div class="meta">
+      <span class="badge amber">v1.0</span>
+      <span class="badge">Inspirado en PSeInt</span>
+      <span class="badge">Intérprete JS</span>
+    </div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Contenidos</div>
+    <ol>
+      <li><a href="#sec-estructura">Estructura general</a></li>
+      <li><a href="#sec-comentarios">Comentarios</a></li>
+      <li><a href="#sec-variables">Variables y tipos</a></li>
+      <li><a href="#sec-operadores">Operadores</a></li>
+      <li><a href="#sec-io">Entrada y salida</a></li>
+      <li><a href="#sec-control">Estructuras de control</a></li>
+      <li><a href="#sec-arreglos">Arreglos</a></li>
+      <li><a href="#sec-funciones">Funciones</a></li>
+      <li><a href="#sec-builtins">Funciones integradas</a></li>
+      <li><a href="#sec-ejemplos">Ejemplos completos</a></li>
+      <li><a href="#sec-errores">Errores comunes</a></li>
+      <li><a href="#sec-ref">Referencia rápida</a></li>
+    </ol>
+  </div>
+
+  <!-- ── 1. ESTRUCTURA ── -->
+  <section class="section" id="sec-estructura">
+    <h2><span class="sec-num">§01</span> Estructura general</h2>
+    <p>Todo programa en PseudoJS debe estar encerrado dentro de un bloque <code>Algoritmo</code> (o su alias <code>Proceso</code>). Las funciones se definen fuera —antes o después— del algoritmo principal.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Algoritmo</span> NombreDelPrograma
+    <span class="cmt">// instrucciones</span>
+<span class="kw">FinAlgoritmo</span></code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Apertura</th><th>Cierre</th></tr></thead>
+        <tbody>
+          <tr><td>Algoritmo</td><td>FinAlgoritmo</td></tr>
+          <tr><td>Proceso</td><td>FinProceso</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>El nombre del algoritmo es opcional pero recomendado. Ejemplo mínimo:</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Algoritmo</span> HolaMundo
+    <span class="kw">Escribir</span> <span class="str">"Hola, mundo!"</span>
+<span class="kw">FinAlgoritmo</span></code></pre>
+  </section>
+
+  <!-- ── 2. COMENTARIOS ── -->
+  <section class="section" id="sec-comentarios">
+    <h2><span class="sec-num">§02</span> Comentarios</h2>
+    <p>Los comentarios son ignorados por el intérprete y sirven únicamente para documentar el código.</p>
+    <pre data-lang="pseudojs"><code><span class="cmt">// Esto es un comentario de línea</span>
+
+<span class="cmt">/* Esto es un
+   comentario de bloque */</span></code></pre>
+  </section>
+
+  <!-- ── 3. VARIABLES ── -->
+  <section class="section" id="sec-variables">
+    <h2><span class="sec-num">§03</span> Variables y tipos</h2>
+
+    <h3>3.1 Declaración implícita</h3>
+    <p>PseudoJS permite usar variables sin declararlas. El tipo se infiere del primer valor asignado.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Algoritmo</span> Ejemplo
+    x       <span class="op">&lt;-</span> <span class="num">10</span>           <span class="cmt">// número entero</span>
+    nombre  <span class="op">&lt;-</span> <span class="str">"Ana"</span>        <span class="cmt">// cadena de texto</span>
+    activo  <span class="op">&lt;-</span> <span class="kw">Verdadero</span>    <span class="cmt">// lógico</span>
+<span class="kw">FinAlgoritmo</span></code></pre>
+
+    <h3>3.2 Declaración explícita con Definir</h3>
+    <pre data-lang="pseudojs"><code><span class="kw">Definir</span> nombre  <span class="kw">Como</span> <span class="typ">Entero</span>
+<span class="kw">Definir</span> precio  <span class="kw">Como</span> <span class="typ">Real</span>
+<span class="kw">Definir</span> letra   <span class="kw">Como</span> <span class="typ">Caracter</span>
+<span class="kw">Definir</span> bandera <span class="kw">Como</span> <span class="typ">Logico</span></code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tipo</th><th>Descripción</th><th>Valor inicial</th></tr></thead>
+        <tbody>
+          <tr><td>Entero</td><td>Número entero</td><td><code>0</code></td></tr>
+          <tr><td>Real</td><td>Número con decimales</td><td><code>0</code></td></tr>
+          <tr><td>Caracter</td><td>Cadena de texto</td><td><code>""</code></td></tr>
+          <tr><td>Logico</td><td>Verdadero o Falso</td><td><code>Falso</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.3 Asignación</h3>
+    <p>PseudoJS acepta tres formas de asignación equivalentes:</p>
+    <pre data-lang="pseudojs"><code>x <span class="op">&lt;-</span> <span class="num">42</span>        <span class="cmt">// flecha (recomendado)</span>
+x <span class="op">:=</span> <span class="num">42</span>        <span class="cmt">// dos puntos igual</span>
+x <span class="op">=</span>  <span class="num">42</span>        <span class="cmt">// igual simple</span></code></pre>
+
+    <h3>3.4 Literales</h3>
+    <pre data-lang="pseudojs"><code><span class="cmt">// Números</span>
+x <span class="op">&lt;-</span> <span class="num">42</span>
+x <span class="op">&lt;-</span> <span class="num">3.14</span>
+x <span class="op">&lt;-</span> <span class="num">-7</span>
+
+<span class="cmt">// Cadenas — comillas simples o dobles</span>
+nombre <span class="op">&lt;-</span> <span class="str">"Juan"</span>
+nombre <span class="op">&lt;-</span> <span class="str">'María'</span>
+
+<span class="cmt">// Lógicos</span>
+activo <span class="op">&lt;-</span> <span class="kw">Verdadero</span>
+activo <span class="op">&lt;-</span> <span class="kw">Falso</span></code></pre>
+
+    <h3>3.5 Nombres de variables</h3>
+    <ul style="color:var(--text2); padding-left:1.5rem; margin-bottom:1rem; line-height:1.9;">
+      <li>Solo letras, dígitos, <code>_</code> y caracteres Unicode (tildes, ñ, etc.).</li>
+      <li>No pueden comenzar con un dígito.</li>
+      <li><strong style="color:var(--text)">No distinguen mayúsculas de minúsculas:</strong> <code>Total</code> y <code>total</code> son la misma variable.</li>
+    </ul>
+  </section>
+
+  <!-- ── 4. OPERADORES ── -->
+  <section class="section" id="sec-operadores">
+    <h2><span class="sec-num">§04</span> Operadores</h2>
+
+    <h3>4.1 Aritméticos</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operador</th><th>Operación</th><th>Ejemplo</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>+</td><td>Suma</td><td><code>3 + 2</code></td><td><code>5</code></td></tr>
+          <tr><td>-</td><td>Resta</td><td><code>10 - 4</code></td><td><code>6</code></td></tr>
+          <tr><td>*</td><td>Multiplicación</td><td><code>3 * 4</code></td><td><code>12</code></td></tr>
+          <tr><td>/</td><td>División</td><td><code>7 / 2</code></td><td><code>3.5</code></td></tr>
+          <tr><td>% / mod</td><td>Módulo (resto)</td><td><code>10 mod 3</code></td><td><code>1</code></td></tr>
+          <tr><td>^ / **</td><td>Potencia</td><td><code>2 ^ 8</code></td><td><code>256</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">El operador <code>+</code> sobre cadenas realiza concatenación: <code>"Valor: " + 42</code> produce <code>"Valor: 42"</code>.</div>
+
+    <h3>4.2 Relacionales</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operador</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td>= / ==</td><td>Igual a</td></tr>
+          <tr><td>&lt;&gt; / !=</td><td>Distinto de</td></tr>
+          <tr><td>&lt;</td><td>Menor que</td></tr>
+          <tr><td>&gt;</td><td>Mayor que</td></tr>
+          <tr><td>&lt;=</td><td>Menor o igual</td></tr>
+          <tr><td>&gt;=</td><td>Mayor o igual</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.3 Lógicos</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operador</th><th>Alias</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>Y</td><td>And</td><td>Conjunción — ambos deben ser verdaderos</td></tr>
+          <tr><td>O</td><td>Or</td><td>Disyunción — al menos uno verdadero</td></tr>
+          <tr><td>No</td><td>Not</td><td>Negación</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <pre data-lang="pseudojs"><code><span class="kw">Si</span> (edad <span class="op">&gt;=</span> <span class="num">18</span>) <span class="kw">Y</span> (tiene_id <span class="op">=</span> <span class="kw">Verdadero</span>) <span class="kw">Entonces</span>
+    <span class="kw">Escribir</span> <span class="str">"Acceso permitido"</span>
+<span class="kw">FinSi</span></code></pre>
+
+    <h3>4.4 Precedencia (de mayor a menor)</h3>
+    <ol style="color:var(--text2); padding-left:1.5rem; line-height:2;">
+      <li><code>No</code> / <code>-</code> (unario)</li>
+      <li><code>^</code> / <code>**</code></li>
+      <li><code>*</code>, <code>/</code>, <code>%</code>, <code>mod</code></li>
+      <li><code>+</code>, <code>-</code></li>
+      <li><code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, <code>=</code>, <code>&lt;&gt;</code></li>
+      <li><code>Y</code> / <code>And</code></li>
+      <li><code>O</code> / <code>Or</code></li>
+    </ol>
+    <div class="note">Usar paréntesis para forzar el orden deseado: <code>(a + b) * (c - d)</code></div>
+  </section>
+
+  <!-- ── 5. I/O ── -->
+  <section class="section" id="sec-io">
+    <h2><span class="sec-num">§05</span> Entrada y salida</h2>
+
+    <h3>Leer</h3>
+    <p>Solicita un valor al usuario y lo almacena en una variable. Acepta múltiples variables separadas por comas.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Leer</span> variable
+<span class="kw">Leer</span> a, b, c
+<span class="kw">Leer</span> arr[i]    <span class="cmt">// leer directamente en posición de arreglo</span></code></pre>
+    <div class="note">Al llamar al intérprete desde JS, los valores de <code>Leer</code> se suministran como el array <code>inputs</code>:<br><br>
+    <code style="color:var(--blue)">interpreter.run(codigo, [10, 20, "hola"]);</code></div>
+
+    <h3>Escribir</h3>
+    <p>Imprime uno o más valores. Los valores se separan con comas y se concatenan en la salida. Cada <code>Escribir</code> produce una línea independiente.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Escribir</span> <span class="str">"Hola, mundo!"</span>
+<span class="kw">Escribir</span> <span class="str">"El resultado es: "</span>, resultado
+<span class="kw">Escribir</span> a, <span class="str">" + "</span>, b, <span class="str">" = "</span>, a <span class="op">+</span> b</code></pre>
+  </section>
+
+  <!-- ── 6. CONTROL ── -->
+  <section class="section" id="sec-control">
+    <h2><span class="sec-num">§06</span> Estructuras de control</h2>
+  </section>
+
+  <section class="section" id="sec-si">
+    <h3>6.1 — Condicional Si</h3>
+    <p>Ejecuta un bloque si la condición es verdadera. La cláusula <code>Sino</code> es opcional.</p>
+    <pre data-lang="pseudojs"><code><span class="cmt">// Forma simple</span>
+<span class="kw">Si</span> condicion <span class="kw">Entonces</span>
+    <span class="cmt">// instrucciones si verdadero</span>
+<span class="kw">FinSi</span>
+
+<span class="cmt">// Con alternativa</span>
+<span class="kw">Si</span> condicion <span class="kw">Entonces</span>
+    <span class="cmt">// instrucciones si verdadero</span>
+<span class="kw">Sino</span>
+    <span class="cmt">// instrucciones si falso</span>
+<span class="kw">FinSi</span></code></pre>
+
+    <p>Anidamiento para múltiples ramas:</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Si</span> nota <span class="op">&gt;=</span> <span class="num">9</span> <span class="kw">Entonces</span>
+    <span class="kw">Escribir</span> <span class="str">"Sobresaliente"</span>
+<span class="kw">Sino</span>
+    <span class="kw">Si</span> nota <span class="op">&gt;=</span> <span class="num">7</span> <span class="kw">Entonces</span>
+        <span class="kw">Escribir</span> <span class="str">"Aprobado"</span>
+    <span class="kw">Sino</span>
+        <span class="kw">Escribir</span> <span class="str">"Reprobado"</span>
+    <span class="kw">FinSi</span>
+<span class="kw">FinSi</span></code></pre>
+    <div class="note">La palabra <code>Entonces</code> es opcional pero recomendada para mayor legibilidad.</div>
+  </section>
+
+  <section class="section" id="sec-segun">
+    <h3>6.2 — Según (switch)</h3>
+    <p>Evalúa una expresión y ejecuta el bloque cuyo valor coincida.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Segun</span> expresion <span class="kw">Hacer</span>
+    <span class="kw">Sea</span> valor1:
+        <span class="cmt">// instrucciones</span>
+    <span class="kw">Sea</span> valor2, valor3:
+        <span class="cmt">// instrucciones para cualquiera de los dos</span>
+    <span class="kw">De Otro Modo:</span>
+        <span class="cmt">// si ningún caso coincidió (opcional)</span>
+<span class="kw">FinSegun</span></code></pre>
+
+    <pre data-lang="pseudojs"><code><span class="kw">Leer</span> dia
+<span class="kw">Segun</span> dia <span class="kw">Hacer</span>
+    <span class="kw">Sea</span> <span class="num">1</span>: <span class="kw">Escribir</span> <span class="str">"Lunes"</span>
+    <span class="kw">Sea</span> <span class="num">2</span>: <span class="kw">Escribir</span> <span class="str">"Martes"</span>
+    <span class="kw">Sea</span> <span class="num">3</span>: <span class="kw">Escribir</span> <span class="str">"Miércoles"</span>
+    <span class="kw">Sea</span> <span class="num">4</span>: <span class="kw">Escribir</span> <span class="str">"Jueves"</span>
+    <span class="kw">Sea</span> <span class="num">5</span>: <span class="kw">Escribir</span> <span class="str">"Viernes"</span>
+    <span class="kw">Sea</span> <span class="num">6</span>, <span class="num">7</span>: <span class="kw">Escribir</span> <span class="str">"Fin de semana"</span>
+    <span class="kw">De Otro Modo</span>: <span class="kw">Escribir</span> <span class="str">"Día inválido"</span>
+<span class="kw">FinSegun</span></code></pre>
+    <div class="note"><code>Sea</code> acepta múltiples valores separados por comas. La comparación usa igualdad no estricta, por lo que <code>"5"</code> coincide con <code>5</code>.</div>
+  </section>
+
+  <section class="section" id="sec-mientras">
+    <h3>6.3 — Mientras</h3>
+    <p>Repite un bloque <em>mientras</em> la condición sea verdadera. Si la condición es falsa desde el inicio, el bloque no se ejecuta.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Mientras</span> condicion <span class="kw">Hacer</span>
+    <span class="cmt">// instrucciones</span>
+<span class="kw">FinMientras</span></code></pre>
+
+    <pre data-lang="pseudojs"><code><span class="kw">Algoritmo</span> SumaInteractiva
+    suma <span class="op">&lt;-</span> <span class="num">0</span>
+    <span class="kw">Leer</span> n
+    <span class="kw">Mientras</span> n <span class="op">&lt;&gt;</span> <span class="num">0</span> <span class="kw">Hacer</span>
+        suma <span class="op">&lt;-</span> suma <span class="op">+</span> n
+        <span class="kw">Leer</span> n
+    <span class="kw">FinMientras</span>
+    <span class="kw">Escribir</span> <span class="str">"Total: "</span>, suma
+<span class="kw">FinAlgoritmo</span></code></pre>
+    <div class="warn">El intérprete limita el número de iteraciones a <strong>100 000</strong> para detectar bucles infinitos.</div>
+  </section>
+
+  <section class="section" id="sec-para">
+    <h3>6.4 — Para</h3>
+    <p>Itera una variable contadora desde un valor inicial hasta uno final.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Para</span> variable <span class="op">&lt;-</span> inicio <span class="kw">Hasta</span> fin <span class="kw">Hacer</span>
+    <span class="cmt">// instrucciones</span>
+<span class="kw">FinPara</span>
+
+<span class="cmt">// Con paso personalizado</span>
+<span class="kw">Para</span> variable <span class="op">&lt;-</span> inicio <span class="kw">Hasta</span> fin <span class="kw">ConPaso</span> paso <span class="kw">Hacer</span>
+    <span class="cmt">// instrucciones</span>
+<span class="kw">FinPara</span></code></pre>
+
+    <pre data-lang="pseudojs"><code><span class="cmt">// Contar de 1 a 10</span>
+<span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> <span class="num">10</span> <span class="kw">Hacer</span>
+    <span class="kw">Escribir</span> i
+<span class="kw">FinPara</span>
+
+<span class="cmt">// Paso negativo automático (10..1)</span>
+<span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">10</span> <span class="kw">Hasta</span> <span class="num">1</span> <span class="kw">Hacer</span>
+    <span class="kw">Escribir</span> i
+<span class="kw">FinPara</span>
+
+<span class="cmt">// Paso de 2 en 2</span>
+<span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">0</span> <span class="kw">Hasta</span> <span class="num">20</span> <span class="kw">ConPaso</span> <span class="num">2</span> <span class="kw">Hacer</span>
+    <span class="kw">Escribir</span> i
+<span class="kw">FinPara</span>
+
+<span class="cmt">// Paso decimal</span>
+<span class="kw">Para</span> x <span class="op">&lt;-</span> <span class="num">0.0</span> <span class="kw">Hasta</span> <span class="num">1.0</span> <span class="kw">ConPaso</span> <span class="num">0.25</span> <span class="kw">Hacer</span>
+    <span class="kw">Escribir</span> x
+<span class="kw">FinPara</span></code></pre>
+    <div class="note">Si no se especifica <code>ConPaso</code>, el paso es <code>+1</code> cuando <code>inicio &lt;= fin</code>, o <code>-1</code> cuando <code>inicio &gt; fin</code>.</div>
+  </section>
+
+  <section class="section" id="sec-repetir">
+    <h3>6.5 — Repetir...HastaQue</h3>
+    <p>Ejecuta el bloque <em>al menos una vez</em> y repite mientras la condición de parada sea <strong style="color:var(--text)">falsa</strong>. Se detiene cuando la condición es verdadera.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Repetir</span>
+    <span class="cmt">// instrucciones</span>
+<span class="kw">HastaQue</span> condicion</code></pre>
+
+    <pre data-lang="pseudojs"><code><span class="kw">Algoritmo</span> LeerPositivo
+    <span class="kw">Repetir</span>
+        <span class="kw">Leer</span> n
+        <span class="kw">Si</span> n <span class="op">&lt;=</span> <span class="num">0</span> <span class="kw">Entonces</span>
+            <span class="kw">Escribir</span> <span class="str">"Ingresa un número positivo"</span>
+        <span class="kw">FinSi</span>
+    <span class="kw">HastaQue</span> n <span class="op">&gt;</span> <span class="num">0</span>
+    <span class="kw">Escribir</span> <span class="str">"Ingresaste: "</span>, n
+<span class="kw">FinAlgoritmo</span></code></pre>
+  </section>
+
+  <!-- ── 7. ARREGLOS ── -->
+  <section class="section" id="sec-arreglos">
+    <h2><span class="sec-num">§07</span> Arreglos</h2>
+
+    <h3>7.1 Declaración</h3>
+    <pre data-lang="pseudojs"><code><span class="kw">Definir</span> nombre <span class="kw">Como Arreglo De</span> <span class="typ">Entero</span></code></pre>
+    <p>Los arreglos en PseudoJS son dinámicos: no requieren tamaño fijo al declararse.</p>
+
+    <h3>7.2 Acceso e índices</h3>
+    <p>Los índices <strong style="color:var(--amber2)">comienzan en 1</strong> (convención PSeInt).</p>
+    <pre data-lang="pseudojs"><code>arr[<span class="num">1</span>] <span class="op">&lt;-</span> <span class="num">10</span>
+arr[<span class="num">2</span>] <span class="op">&lt;-</span> <span class="num">20</span>
+<span class="kw">Escribir</span> arr[<span class="num">1</span>]   <span class="cmt">// 10</span>
+<span class="kw">Leer</span> arr[i]       <span class="cmt">// leer en posición i</span></code></pre>
+
+    <h3>7.3 Ejemplo — promedio de N números</h3>
+    <pre data-lang="pseudojs"><code><span class="kw">Algoritmo</span> Promedio
+    <span class="kw">Definir</span> datos <span class="kw">Como Arreglo De</span> <span class="typ">Real</span>
+    <span class="kw">Leer</span> n
+    <span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> n <span class="kw">Hacer</span>
+        <span class="kw">Leer</span> datos[i]
+    <span class="kw">FinPara</span>
+    suma <span class="op">&lt;-</span> <span class="num">0</span>
+    <span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> n <span class="kw">Hacer</span>
+        suma <span class="op">&lt;-</span> suma <span class="op">+</span> datos[i]
+    <span class="kw">FinPara</span>
+    <span class="kw">Escribir</span> <span class="str">"Promedio: "</span>, suma <span class="op">/</span> n
+<span class="kw">FinAlgoritmo</span></code></pre>
+
+    <h3>7.4 Intercambio de elementos (swap)</h3>
+    <pre data-lang="pseudojs"><code>temp   <span class="op">&lt;-</span> arr[i]
+arr[i] <span class="op">&lt;-</span> arr[j]
+arr[j] <span class="op">&lt;-</span> temp</code></pre>
+  </section>
+
+  <!-- ── 8. FUNCIONES ── -->
+  <section class="section" id="sec-funciones">
+    <h2><span class="sec-num">§08</span> Funciones</h2>
+
+    <h3>8.1 Definición</h3>
+    <p>Las funciones se declaran fuera del <code>Algoritmo</code> principal, antes o después.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Funcion</span> <span class="fn">NombreFuncion</span>(param1, param2)
+    <span class="cmt">// instrucciones</span>
+    <span class="kw">Retornar</span> valor
+<span class="kw">FinFuncion</span></code></pre>
+    <ul style="color:var(--text2); padding-left:1.5rem; margin-bottom:1rem; line-height:1.9;">
+      <li><code>Retornar</code> y <code>Devolver</code> son alias equivalentes.</li>
+      <li>Los parámetros se pasan <strong style="color:var(--text)">por valor</strong> (no modifican las variables del llamador).</li>
+      <li>Una función sin <code>Retornar</code> devuelve <code>null</code>.</li>
+    </ul>
+
+    <h3>8.2 Llamada</h3>
+    <pre data-lang="pseudojs"><code>resultado <span class="op">&lt;-</span> <span class="fn">NombreFuncion</span>(arg1, arg2)
+
+<span class="cmt">// Como sentencia (ignorando el retorno)</span>
+<span class="fn">NombreFuncion</span>(arg1, arg2)</code></pre>
+
+    <h3>8.3 Recursión</h3>
+    <pre data-lang="pseudojs"><code><span class="kw">Funcion</span> r <span class="op">&lt;-</span> <span class="fn">Factorial</span>(n)
+    <span class="kw">Si</span> n <span class="op">&lt;=</span> <span class="num">1</span> <span class="kw">Entonces</span>
+        <span class="kw">Retornar</span> <span class="num">1</span>
+    <span class="kw">FinSi</span>
+    <span class="kw">Retornar</span> n <span class="op">*</span> <span class="fn">Factorial</span>(n <span class="op">-</span> <span class="num">1</span>)
+<span class="kw">FinFuncion</span>
+
+<span class="kw">Algoritmo</span> TestFactorial
+    <span class="kw">Leer</span> n
+    <span class="kw">Escribir</span> n, <span class="str">"! = "</span>, <span class="fn">Factorial</span>(n)
+<span class="kw">FinAlgoritmo</span></code></pre>
+    <div class="warn">El intérprete limita la profundidad de recursión a <strong>500 llamadas</strong>.</div>
+
+    <h3>8.4 Alcance de variables</h3>
+    <p>Cada función tiene su propio entorno. Las variables locales no son accesibles desde fuera.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Funcion</span> r <span class="op">&lt;-</span> <span class="fn">Doble</span>(x)
+    resultado <span class="op">&lt;-</span> x <span class="op">*</span> <span class="num">2</span>    <span class="cmt">// 'resultado' es local</span>
+    <span class="kw">Retornar</span> resultado
+<span class="kw">FinFuncion</span>
+
+<span class="kw">Algoritmo</span> Ejemplo
+    r <span class="op">&lt;-</span> <span class="fn">Doble</span>(<span class="num">5</span>)
+    <span class="kw">Escribir</span> r           <span class="cmt">// 10</span>
+    <span class="cmt">// 'resultado' no existe aquí</span>
+<span class="kw">FinAlgoritmo</span></code></pre>
+  </section>
+
+  <!-- ── 9. BUILTINS ── -->
+  <section class="section" id="sec-builtins">
+    <h2><span class="sec-num">§09</span> Funciones integradas</h2>
+
+    <h3>9.1 Matemáticas</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Función</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td>Abs(x)</td><td>Valor absoluto</td><td><code>Abs(-5)</code> → <code>5</code></td></tr>
+          <tr><td>Raiz(x) / Sqrt(x)</td><td>Raíz cuadrada</td><td><code>Raiz(16)</code> → <code>4</code></td></tr>
+          <tr><td>Potencia(b, e)</td><td>Potencia</td><td><code>Potencia(2, 10)</code> → <code>1024</code></td></tr>
+          <tr><td>Piso(x)</td><td>Redondeo hacia abajo</td><td><code>Piso(3.9)</code> → <code>3</code></td></tr>
+          <tr><td>Techo(x)</td><td>Redondeo hacia arriba</td><td><code>Techo(3.1)</code> → <code>4</code></td></tr>
+          <tr><td>Trunc(x)</td><td>Parte entera (sin redondeo)</td><td><code>Trunc(-3.9)</code> → <code>-3</code></td></tr>
+          <tr><td>Redondear(x, d)</td><td>Redondea a d decimales</td><td><code>Redondear(3.14159, 2)</code> → <code>3.14</code></td></tr>
+          <tr><td>Max(a, b, ...)</td><td>Máximo de varios valores</td><td><code>Max(3, 7, 2)</code> → <code>7</code></td></tr>
+          <tr><td>Min(a, b, ...)</td><td>Mínimo de varios valores</td><td><code>Min(3, 7, 2)</code> → <code>2</code></td></tr>
+          <tr><td>Ln(x)</td><td>Logaritmo natural</td><td><code>Ln(2.71828)</code> ≈ <code>1</code></td></tr>
+          <tr><td>Log(x)</td><td>Logaritmo base 10</td><td><code>Log(100)</code> → <code>2</code></td></tr>
+          <tr><td>Exp(x)</td><td>e elevado a x</td><td><code>Exp(1)</code> ≈ <code>2.718</code></td></tr>
+          <tr><td>Sen(x)</td><td>Seno (radianes)</td><td><code>Sen(0)</code> → <code>0</code></td></tr>
+          <tr><td>Cos(x)</td><td>Coseno (radianes)</td><td><code>Cos(0)</code> → <code>1</code></td></tr>
+          <tr><td>Tan(x)</td><td>Tangente (radianes)</td><td><code>Tan(0)</code> → <code>0</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.2 Aleatorios</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Función</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td>Aleatorio(a, b)</td><td>Entero aleatorio entre a y b (inclusive)</td><td><code>Aleatorio(1, 6)</code> → simula un dado</td></tr>
+          <tr><td>Azar(n)</td><td>Entero aleatorio entre 0 y n-1</td><td><code>Azar(100)</code> → 0..99</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.3 Cadenas</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Función</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td>Longitud(s) / Len(s)</td><td>Número de caracteres</td><td><code>Longitud("Hola")</code> → <code>4</code></td></tr>
+          <tr><td>SubCadena(s, i, f)</td><td>Extrae chars de posición i a f (base 1)</td><td><code>SubCadena("Hola", 2, 3)</code> → <code>"ol"</code></td></tr>
+          <tr><td>Mayusculas(s)</td><td>Convierte a mayúsculas</td><td><code>Mayusculas("hola")</code> → <code>"HOLA"</code></td></tr>
+          <tr><td>Minusculas(s)</td><td>Convierte a minúsculas</td><td><code>Minusculas("HOLA")</code> → <code>"hola"</code></td></tr>
+          <tr><td>Concatenar(a, b, ...)</td><td>Une varias cadenas</td><td><code>Concatenar("Ho","la")</code> → <code>"Hola"</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.4 Conversión y verificación</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Función</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>ConvertirANumero(s)</td><td>Convierte cadena a número</td></tr>
+          <tr><td>ConvertirAString(n) / ConvertirATexto(n)</td><td>Convierte número a cadena</td></tr>
+          <tr><td>EsEntero(x)</td><td><code>Verdadero</code> si x es entero</td></tr>
+          <tr><td>EsReal(x)</td><td><code>Verdadero</code> si x es número</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 10. EJEMPLOS ── -->
+  <section class="section" id="sec-ejemplos">
+    <h2><span class="sec-num">§10</span> Ejemplos completos</h2>
+
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="pattern-card-title">Números primos</div>
+        <pre data-lang="pseudojs"><code><span class="kw">Funcion</span> r <span class="op">&lt;-</span> <span class="fn">EsPrimo</span>(n)
+    <span class="kw">Si</span> n <span class="op">&lt;</span> <span class="num">2</span> <span class="kw">Entonces</span>
+        <span class="kw">Retornar</span> <span class="kw">Falso</span>
+    <span class="kw">FinSi</span>
+    <span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">2</span> <span class="kw">Hasta</span> <span class="fn">Trunc</span>(<span class="fn">Raiz</span>(n)) <span class="kw">Hacer</span>
+        <span class="kw">Si</span> n <span class="kw">mod</span> i <span class="op">=</span> <span class="num">0</span> <span class="kw">Entonces</span>
+            <span class="kw">Retornar</span> <span class="kw">Falso</span>
+        <span class="kw">FinSi</span>
+    <span class="kw">FinPara</span>
+    <span class="kw">Retornar</span> <span class="kw">Verdadero</span>
+<span class="kw">FinFuncion</span>
+
+<span class="kw">Algoritmo</span> Primos
+    <span class="kw">Leer</span> limite
+    <span class="kw">Para</span> n <span class="op">&lt;-</span> <span class="num">2</span> <span class="kw">Hasta</span> limite <span class="kw">Hacer</span>
+        <span class="kw">Si</span> <span class="fn">EsPrimo</span>(n) <span class="kw">Entonces</span>
+            <span class="kw">Escribir</span> n
+        <span class="kw">FinSi</span>
+    <span class="kw">FinPara</span>
+<span class="kw">FinAlgoritmo</span></code></pre>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pattern-card-title">Ordenamiento burbuja</div>
+        <pre data-lang="pseudojs"><code><span class="kw">Algoritmo</span> BurbujaSort
+    <span class="kw">Leer</span> n
+    <span class="kw">Definir</span> arr <span class="kw">Como Arreglo De</span> <span class="typ">Entero</span>
+    <span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> n <span class="kw">Hacer</span>
+        <span class="kw">Leer</span> arr[i]
+    <span class="kw">FinPara</span>
+    <span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> n <span class="op">-</span> <span class="num">1</span> <span class="kw">Hacer</span>
+        <span class="kw">Para</span> j <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> n <span class="op">-</span> i <span class="kw">Hacer</span>
+            <span class="kw">Si</span> arr[j] <span class="op">&gt;</span> arr[j <span class="op">+</span> <span class="num">1</span>] <span class="kw">Entonces</span>
+                temp       <span class="op">&lt;-</span> arr[j]
+                arr[j]     <span class="op">&lt;-</span> arr[j <span class="op">+</span> <span class="num">1</span>]
+                arr[j <span class="op">+</span> <span class="num">1</span>] <span class="op">&lt;-</span> temp
+            <span class="kw">FinSi</span>
+        <span class="kw">FinPara</span>
+    <span class="kw">FinPara</span>
+    <span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> n <span class="kw">Hacer</span>
+        <span class="kw">Escribir</span> arr[i]
+    <span class="kw">FinPara</span>
+<span class="kw">FinAlgoritmo</span></code></pre>
+      </div>
+
+      <div class="pattern-card">
+        <div class="pattern-card-title">Fibonacci recursivo vs iterativo</div>
+        <pre data-lang="pseudojs"><code><span class="kw">Funcion</span> r <span class="op">&lt;-</span> <span class="fn">FibRec</span>(n)
+    <span class="kw">Si</span> n <span class="op">&lt;=</span> <span class="num">1</span> <span class="kw">Entonces</span>
+        <span class="kw">Retornar</span> n
+    <span class="kw">FinSi</span>
+    <span class="kw">Retornar</span> <span class="fn">FibRec</span>(n<span class="op">-</span><span class="num">1</span>) <span class="op">+</span> <span class="fn">FibRec</span>(n<span class="op">-</span><span class="num">2</span>)
+<span class="kw">FinFuncion</span>
+
+<span class="kw">Funcion</span> r <span class="op">&lt;-</span> <span class="fn">FibIter</span>(n)
+    <span class="kw">Si</span> n <span class="op">&lt;=</span> <span class="num">1</span> <span class="kw">Entonces</span>
+        <span class="kw">Retornar</span> n
+    <span class="kw">FinSi</span>
+    a <span class="op">&lt;-</span> <span class="num">0</span> ; b <span class="op">&lt;-</span> <span class="num">1</span>
+    <span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">2</span> <span class="kw">Hasta</span> n <span class="kw">Hacer</span>
+        c <span class="op">&lt;-</span> a <span class="op">+</span> b ; a <span class="op">&lt;-</span> b ; b <span class="op">&lt;-</span> c
+    <span class="kw">FinPara</span>
+    <span class="kw">Retornar</span> b
+<span class="kw">FinFuncion</span>
+
+<span class="kw">Algoritmo</span> TestFib
+    <span class="kw">Leer</span> n
+    <span class="kw">Escribir</span> <span class="str">"Recursivo: "</span>, <span class="fn">FibRec</span>(n)
+    <span class="kw">Escribir</span> <span class="str">"Iterativo: "</span>, <span class="fn">FibIter</span>(n)
+<span class="kw">FinAlgoritmo</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 11. ERRORES ── -->
+  <section class="section" id="sec-errores">
+    <h2><span class="sec-num">§11</span> Errores comunes</h2>
+
+    <h3>Error léxico</h3>
+    <p>Ocurre cuando el intérprete encuentra un carácter que no puede tokenizar.</p>
+    <pre data-lang="pseudojs"><code>x <span class="op">&lt;-</span> <span class="num">10</span>$   <span class="cmt">// ✗ '$' no es un carácter válido</span></code></pre>
+    <div class="warn"><strong>[Léxico] Línea N:</strong> Carácter inesperado: '$'</div>
+
+    <h3>Error de sintaxis</h3>
+    <p>Ocurre cuando la estructura del código no sigue la gramática del lenguaje.</p>
+    <pre data-lang="pseudojs"><code><span class="kw">Si</span> x <span class="op">&gt;</span> <span class="num">0</span>        <span class="cmt">// ✗ falta FinSi</span>
+    <span class="kw">Escribir</span> x</code></pre>
+    <div class="warn"><strong>[Sintaxis] Línea N:</strong> Se esperaba FIN_SI, encontré EOF</div>
+
+    <h3>Errores de runtime</h3>
+    <pre data-lang="pseudojs"><code><span class="kw">Escribir</span> <span class="num">10</span> <span class="op">/</span> <span class="num">0</span>        <span class="cmt">// ✗ División por cero</span>
+<span class="kw">Escribir</span> arr[<span class="num">1</span>]        <span class="cmt">// ✗ arr no fue declarado como arreglo</span>
+<span class="kw">Escribir</span> <span class="fn">MiFuncion</span>()   <span class="cmt">// ✗ función no definida</span>
+
+<span class="kw">Mientras</span> <span class="kw">Verdadero</span> <span class="kw">Hacer</span>
+    <span class="cmt">// ✗ sin salida → límite de 100 000 iteraciones</span>
+<span class="kw">FinMientras</span>
+
+<span class="kw">Funcion</span> r <span class="op">&lt;-</span> <span class="fn">Infinita</span>(n)
+    <span class="kw">Retornar</span> <span class="fn">Infinita</span>(n)  <span class="cmt">// ✗ límite de 500 llamadas</span>
+<span class="kw">FinFuncion</span></code></pre>
+
+    <h3>Entrada insuficiente</h3>
+    <pre data-lang="pseudojs"><code><span class="kw">Leer</span> a, b, c   <span class="cmt">// pero solo se proveyeron 2 valores</span></code></pre>
+    <div class="warn"><strong>[Runtime]</strong> Se necesita más entrada (Leer) sin valores disponibles</div>
+  </section>
+
+  <!-- ── 12. REFERENCIA ── -->
+  <section class="section" id="sec-ref">
+    <h2><span class="sec-num">§12</span> Referencia rápida</h2>
+
+    <h3>Todas las palabras clave</h3>
+    <div class="kw-grid">
+      <span class="kw-pill">Algoritmo</span><span class="kw-pill">FinAlgoritmo</span>
+      <span class="kw-pill">Proceso</span><span class="kw-pill">FinProceso</span>
+      <span class="kw-pill">Funcion</span><span class="kw-pill">FinFuncion</span>
+      <span class="kw-pill">Retornar</span><span class="kw-pill">Devolver</span>
+      <span class="kw-pill">Leer</span><span class="kw-pill">Escribir</span>
+      <span class="kw-pill">Si</span><span class="kw-pill">Entonces</span><span class="kw-pill">Sino</span><span class="kw-pill">FinSi</span>
+      <span class="kw-pill">Mientras</span><span class="kw-pill">Hacer</span><span class="kw-pill">FinMientras</span>
+      <span class="kw-pill">Para</span><span class="kw-pill">Desde</span><span class="kw-pill">Hasta</span><span class="kw-pill">ConPaso</span><span class="kw-pill">FinPara</span>
+      <span class="kw-pill">Repetir</span><span class="kw-pill">HastaQue</span>
+      <span class="kw-pill">Segun</span><span class="kw-pill">Sea</span><span class="kw-pill">DeOtroModo</span><span class="kw-pill">FinSegun</span>
+      <span class="kw-pill">Definir</span><span class="kw-pill">Como</span><span class="kw-pill">Arreglo</span><span class="kw-pill">De</span>
+      <span class="kw-pill">Entero</span><span class="kw-pill">Real</span><span class="kw-pill">Caracter</span><span class="kw-pill">Logico</span>
+      <span class="kw-pill">Verdadero</span><span class="kw-pill">Falso</span>
+      <span class="kw-pill">Y</span><span class="kw-pill">O</span><span class="kw-pill">No</span><span class="kw-pill">Mod</span>
+    </div>
+
+    <h3>Patrones frecuentes</h3>
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="pattern-card-title">Suma acumulativa</div>
+        <pre><code>suma <span class="op">&lt;-</span> <span class="num">0</span>
+<span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">1</span> <span class="kw">Hasta</span> n <span class="kw">Hacer</span>
+    suma <span class="op">&lt;-</span> suma <span class="op">+</span> arr[i]
+<span class="kw">FinPara</span></code></pre>
+      </div>
+      <div class="pattern-card">
+        <div class="pattern-card-title">Buscar máximo en arreglo</div>
+        <pre><code>maximo <span class="op">&lt;-</span> arr[<span class="num">1</span>]
+<span class="kw">Para</span> i <span class="op">&lt;-</span> <span class="num">2</span> <span class="kw">Hasta</span> n <span class="kw">Hacer</span>
+    <span class="kw">Si</span> arr[i] <span class="op">&gt;</span> maximo <span class="kw">Entonces</span>
+        maximo <span class="op">&lt;-</span> arr[i]
+    <span class="kw">FinSi</span>
+<span class="kw">FinPara</span></code></pre>
+      </div>
+      <div class="pattern-card">
+        <div class="pattern-card-title">Validar entrada</div>
+        <pre><code><span class="kw">Repetir</span>
+    <span class="kw">Leer</span> valor
+<span class="kw">HastaQue</span> valor <span class="op">&gt;=</span> <span class="num">0</span> <span class="kw">Y</span> valor <span class="op">&lt;=</span> <span class="num">100</span></code></pre>
+      </div>
+      <div class="pattern-card">
+        <div class="pattern-card-title">Intercambio (swap)</div>
+        <pre><code>temp   <span class="op">&lt;-</span> arr[i]
+arr[i] <span class="op">&lt;-</span> arr[j]
+arr[j] <span class="op">&lt;-</span> temp</code></pre>
+      </div>
+    </div>
+
+    <h3>API desde JavaScript</h3>
+    <pre data-lang="js"><code><span class="cmt">// Node.js</span>
+<span class="kw">const</span> interpreter <span class="op">=</span> require(<span class="str">'./pseudojs'</span>);
+
+<span class="kw">const</span> resultado <span class="op">=</span> interpreter.<span class="fn">run</span>(<span class="str">`
+Algoritmo Suma
+    Leer a, b
+    Escribir a + b
+FinAlgoritmo
+`</span>, [<span class="num">10</span>, <span class="num">32</span>]);
+
+console.<span class="fn">log</span>(resultado.output);       <span class="cmt">// ["42"]</span>
+console.<span class="fn">log</span>(resultado.inputsUsed);   <span class="cmt">// 2</span>
+
+<span class="kw">if</span> (resultado.error) {
+    console.<span class="fn">error</span>(resultado.error);
+}</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+        <tbody>
+          <tr><td>output</td><td><code>string[]</code></td><td>Líneas producidas por Escribir</td></tr>
+          <tr><td>inputsUsed</td><td><code>number</code></td><td>Cuántos valores de Leer se consumieron</td></tr>
+          <tr><td>error</td><td><code>string</code></td><td>Mensaje de error (solo si hubo fallo)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    PseudoJS v1.0 — Dialecto de pseudocódigo estilo PSeInt, interpretado en JavaScript.
+  </footer>
+</main>
+
+<script>
+// Active nav link on scroll
+const sections = document.querySelectorAll('section[id], div[id]');
+const navLinks = document.querySelectorAll('nav a');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -75% 0px' });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

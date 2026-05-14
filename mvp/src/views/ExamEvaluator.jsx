@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../AuthContext";
+import manualUrl from "../assets/manual.html?url";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -40,6 +41,7 @@ const ExamEvaluator = () => {
     const [showExitModal, setShowExitModal] = useState(false);
     const [dbSchema, setDbSchema] = useState(null);
     const [schemaOpen, setSchemaOpen] = useState(true);
+    const [examType, setExamType] = useState(null);
 
     const currentQuestion = questionsArray[currentQuestionIndex] ? {
         questionID: questionsArray[currentQuestionIndex].QuestionID,
@@ -49,11 +51,20 @@ const ExamEvaluator = () => {
             const eo = questionsArray[currentQuestionIndex].ExpectedOutput;
             if (eo === null || eo === undefined) return null;
             if (typeof eo === "number") return eo;
-            if (typeof eo === "object") return eo.rowCount ?? null;
+            if (typeof eo === "object" && !Array.isArray(eo)) return eo.rowCount ?? null;
             return null;
         })(),
+        expectedOutputArray: (() => {
+            const eo = questionsArray[currentQuestionIndex].ExpectedOutput;
+            if (eo && typeof eo === "object" && !Array.isArray(eo) && Array.isArray(eo.outputs)) return eo.outputs;
+            return null;
+        })(),
+        inputs: (() => {
+            const eo = questionsArray[currentQuestionIndex].ExpectedOutput;
+            if (eo && typeof eo === "object" && !Array.isArray(eo) && Array.isArray(eo.inputs)) return eo.inputs;
+            return [];
+        })(),
         points: questionsArray[currentQuestionIndex].Value,
-        type: "SQL",
         tableSchema: questionsArray[currentQuestionIndex].TableSchema
             ?? questionsArray[currentQuestionIndex].Schema
             ?? null,
@@ -65,16 +76,22 @@ const ExamEvaluator = () => {
     // Fetch questions
     useEffect(() => {
         fetch(`${API_URL}/exams/id/${examID}/questions`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
+            credentials: "include",
         })
             .then(r => r.json())
             .then(data => {
+                console.log("[ExamEvaluator] questions response:", data);
                 setQuestionsArray(data.questions ?? []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("[ExamEvaluator] error cargando preguntas:", err);
                 setLoading(false);
             });
     }, [examID]);
 
-    // Resolve assignmentID + DatabaseID from the student's exam list, then fetch schema
+    // Resolve assignmentID + Type + DatabaseID from the student's exam list, then fetch schema if SQL
     useEffect(() => {
         fetch(`${API_URL}/exams`, {
             headers: { Authorization: `Bearer ${token}` }
@@ -85,6 +102,9 @@ const ExamEvaluator = () => {
                 const match = exams.find(e => e.ExamID === examID);
                 if (!match) return null;
                 if (!assignmentID && match.AssignmentID) setAssignmentID(match.AssignmentID);
+                const type = match.Type ?? "SQL";
+                setExamType(type);
+                if (type === "PSEUDOCODE") return null;
                 const databaseID = match.DatabaseID ?? null;
                 if (!databaseID) return null;
                 return fetch(`${API_URL}/databases/id/${databaseID}/schema`, {
@@ -123,25 +143,39 @@ const ExamEvaluator = () => {
     };
 
     const handleRunQuery = async () => {
-        if (!sqlCode.trim() || !assignmentID || !currentQuestion?.questionID) return;
+        if (!sqlCode.trim()) return;
+        const isPseudo = examType === "PSEUDOCODE";
+        console.log(currentQuestion)
+        if (!assignmentID || !currentQuestion?.questionID) return;
+
+        console.log("[ExamEvaluator] submit", { isPseudo, assignmentID, questionID: currentQuestion.questionID, codeLen: sqlCode.length });
+
         setIsExecuting(true);
         setComparisonResult(null);
         setAnswerOutput(null);
         setOutput("");
         const start = performance.now();
         try {
-            const res = await fetch(`${API_URL}/assignments/id/${assignmentID}/submit`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                credentials: "include",
-                body: JSON.stringify({ questionID: currentQuestion.questionID, answer: sqlCode }),
-            });
+            const res = isPseudo
+                ? await fetch(`${API_URL}/assignments/id/${assignmentID}/pseudocode`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    credentials: "include",
+                    body: JSON.stringify({ code: sqlCode, inputs: currentQuestion?.inputs ?? [], questionID: currentQuestion?.questionID }),
+                })
+                : await fetch(`${API_URL}/assignments/id/${assignmentID}/submit`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    credentials: "include",
+                    body: JSON.stringify({ questionID: currentQuestion.questionID, answer: sqlCode }),
+                });
+
             const data = await res.json();
             const elapsed = performance.now() - start;
             setExecutionTime(elapsed < 1000 ? `${elapsed.toFixed(0)}ms` : `${(elapsed / 1000).toFixed(2)}s`);
 
             if (!res.ok) {
-                setOutput(data.error ?? "Error al ejecutar la consulta");
+                setOutput(data.error ?? "Error al ejecutar el código");
                 setComparisonResult("incorrect");
                 return;
             }
@@ -155,25 +189,27 @@ const ExamEvaluator = () => {
             const ao = data.answerOutput;
             setAnswerOutput(ao);
 
-            const fields = ao?.fields ?? [];
-            const rows = ao?.rows ?? [];
-            const rowCount = ao?.rowCount ?? 0;
-
-            let text = `${rowCount} fila(s) encontradas`;
-            if (fields.length > 0) {
-                text += "\n\n" + fields.join(" | ");
-                text += "\n" + rows.slice(0, 8).map(r => fields.map(f => String(r[f] ?? "")).join(" | ")).join("\n");
-                if (rows.length > 8) text += `\n... y ${rows.length - 8} más`;
+            if (isPseudo) {
+                const outputs = ao?.outputs ?? [];
+                setOutput(outputs.length > 0 ? outputs.join("\n") : "(sin salida)");
+            } else {
+                const fields = ao?.fields ?? [];
+                const rows = ao?.rows ?? [];
+                const rowCount = ao?.rowCount ?? 0;
+                let text = `${rowCount} fila(s) encontradas`;
+                if (fields.length > 0) {
+                    text += "\n\n" + fields.join(" | ");
+                    text += "\n" + rows.slice(0, 8).map(r => fields.map(f => String(r[f] ?? "")).join(" | ")).join("\n");
+                    if (rows.length > 8) text += `\n... y ${rows.length - 8} más`;
+                }
+                setOutput(text);
             }
-            setOutput(text);
-
-            console.log("isCorrect:", data.isCorrect, "expectedRows:", currentQuestion.expectedRows, "rowCount:", rowCount);
 
             if (data.isCorrect !== null && data.isCorrect !== undefined) {
                 setComparisonResult(data.isCorrect ? "correct" : "incorrect");
-            } else if (currentQuestion.expectedRows !== null) {
+            } else if (!isPseudo && currentQuestion?.expectedRows !== null) {
                 setComparisonResult(
-                    (data.answerOutput?.rowCount === currentQuestion.expectedRows) ? "correct" : "incorrect"
+                    (ao?.rowCount === currentQuestion.expectedRows) ? "correct" : "incorrect"
                 );
             }
         } catch (err) {
@@ -421,7 +457,7 @@ const ExamEvaluator = () => {
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                                 </span>
                                 <span className="text-[10px] font-bold text-blue-400 tracking-wider uppercase">
-                                    {currentQuestion?.type}
+                                    {examType ?? "SQL"}
                                 </span>
                             </div>
                         </div>
@@ -429,8 +465,8 @@ const ExamEvaluator = () => {
                         {/* Contenido Pregunta (Scrollable) */}
                         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 custom-scrollbar">
 
-                            {/* DB Schema */}
-                            {dbSchema && (
+                            {/* DB Schema — solo SQL */}
+                            {examType !== "PSEUDOCODE" && dbSchema && (
                                 <div className="rounded-xl border border-white/5 bg-[#090a10] overflow-hidden">
                                     <button
                                         type="button"
@@ -502,8 +538,48 @@ const ExamEvaluator = () => {
                                 </div>
                             )}
 
-                            {/* Filas Esperadas */}
-                            {currentQuestion?.expectedRows !== null && currentQuestion?.expectedRows !== undefined && (
+                            {/* Pseudocódigo: entradas y salida esperada */}
+                            {examType === "PSEUDOCODE" && (
+                                <div className="space-y-3">
+                                    {/* Entradas */}
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <Info className="h-3.5 w-3.5 text-indigo-400/60" />
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400/60">Entradas</h4>
+                                        </div>
+                                        <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 flex flex-wrap gap-1.5">
+                                            {(currentQuestion?.inputs ?? []).length > 0
+                                                ? (currentQuestion.inputs).map((v, i) => (
+                                                    <span key={i} className="px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-mono font-bold">
+                                                        {v}
+                                                    </span>
+                                                ))
+                                                : <span className="text-xs text-muted-foreground italic">Sin entradas</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    {/* Salida esperada */}
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <Info className="h-3.5 w-3.5 text-emerald-400/60" />
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400/60">Salida Esperada</h4>
+                                        </div>
+                                        <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 flex flex-wrap gap-1.5">
+                                            {(currentQuestion?.expectedOutputArray ?? []).length > 0
+                                                ? (currentQuestion.expectedOutputArray).map((v, i) => (
+                                                    <span key={i} className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
+                                                        {v}
+                                                    </span>
+                                                ))
+                                                : <span className="text-xs text-muted-foreground italic">Sin salida definida</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* SQL: Filas Esperadas */}
+                            {examType !== "PSEUDOCODE" && currentQuestion?.expectedRows !== null && currentQuestion?.expectedRows !== undefined && (
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-1.5 mb-1">
                                         <Info className="h-3.5 w-3.5 text-success/60" />
@@ -552,6 +628,16 @@ const ExamEvaluator = () => {
                             <div className="flex items-center gap-2">
                                 <Code2 className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-semibold text-foreground/80 tracking-wide">Espacio de trabajo</span>
+                                {examType === "PSEUDOCODE" && (
+                                    <a
+                                        href={manualUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] font-bold text-primary/70 hover:text-primary border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded-md transition-all duration-200"
+                                    >
+                                        📖 Manual
+                                    </a>
+                                )}
                             </div>
                             <Button
                                 size="sm"
@@ -578,8 +664,24 @@ const ExamEvaluator = () => {
                             <Textarea
                                 value={sqlCode}
                                 onChange={(e) => setSqlCode(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Tab") {
+                                        e.preventDefault();
+                                        const el = e.currentTarget;
+                                        const start = el.selectionStart;
+                                        const end = el.selectionEnd;
+                                        const tab = "    ";
+                                        setSqlCode(prev => prev.substring(0, start) + tab + prev.substring(end));
+                                        requestAnimationFrame(() => {
+                                            el.selectionStart = el.selectionEnd = start + tab.length;
+                                        });
+                                    }
+                                }}
                                 className="absolute inset-0 pl-14 pr-4 py-4 w-full h-full font-mono text-[14px] bg-transparent text-[#e2e8f0] border-none resize-none focus-visible:ring-0 leading-relaxed"
-                                placeholder="SELECT * FROM usuarios WHERE edad > 18;"
+                                placeholder={examType === "PSEUDOCODE"
+                                    ? "Algoritmo SUMA\n    Entrada a, b\n    Salida a + b\nFinAlgoritmo"
+                                    : "SELECT * FROM usuarios WHERE edad > 18;"
+                                }
                                 spellCheck="false"
                                 style={{ tabSize: 4 }}
                             />
@@ -656,34 +758,56 @@ const ExamEvaluator = () => {
                                                 }}
                                             >
                                                 <div className="flex items-center gap-2 mb-3">
-                                                    {comparisonResult === "correct" ? (
-                                                        <CheckCircle2 className="h-4 w-4 text-success" />
-                                                    ) : (
-                                                        <span className="text-destructive text-sm">✕</span>
-                                                    )}
+                                                    {comparisonResult === "correct"
+                                                        ? <CheckCircle2 className="h-4 w-4 text-success" />
+                                                        : <span className="text-destructive text-sm">✕</span>
+                                                    }
                                                     <span className="text-xs font-bold uppercase tracking-wider"
                                                         style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
-                                                        {comparisonResult === "correct"
-                                                            ? "¡Cantidad de filas correcta!"
-                                                            : "La cantidad de filas no coincide"}
+                                                        {comparisonResult === "correct" ? "¡Resultado correcto!" : "El resultado no coincide"}
                                                     </span>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Filas esperadas</p>
-                                                        <div className="bg-black/30 rounded-lg p-3 border border-white/5 text-center">
-                                                            <span className="text-xl font-black text-success/80">{currentQuestion?.expectedRows}</span>
+
+                                                {examType === "PSEUDOCODE" ? (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Salida esperada</p>
+                                                            <div className="bg-black/30 rounded-lg p-3 border border-white/5 flex flex-wrap gap-1">
+                                                                {(currentQuestion?.expectedOutputArray ?? []).map((v, i) => (
+                                                                    <span key={i} className="text-xs font-mono font-bold text-emerald-400/80">{v}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Tu salida</p>
+                                                            <div className="bg-black/30 rounded-lg p-3 border border-white/5 flex flex-wrap gap-1">
+                                                                {(answerOutput?.outputs ?? []).length > 0
+                                                                    ? (answerOutput.outputs).map((v, i) => (
+                                                                        <span key={i} className="text-xs font-mono font-bold" style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>{String(v)}</span>
+                                                                    ))
+                                                                    : <span className="text-xs text-muted-foreground italic">Sin salida</span>
+                                                                }
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Filas obtenidas</p>
-                                                        <div className="bg-black/30 rounded-lg p-3 border border-white/5 text-center">
-                                                            <span className="text-xl font-black" style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
-                                                                {answerOutput?.rowCount ?? 0}
-                                                            </span>
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Filas esperadas</p>
+                                                            <div className="bg-black/30 rounded-lg p-3 border border-white/5 text-center">
+                                                                <span className="text-xl font-black text-success/80">{currentQuestion?.expectedRows}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Filas obtenidas</p>
+                                                            <div className="bg-black/30 rounded-lg p-3 border border-white/5 text-center">
+                                                                <span className="text-xl font-black" style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
+                                                                    {answerOutput?.rowCount ?? 0}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                )}
                                             </motion.div>
                                         )}
                                     </motion.div>

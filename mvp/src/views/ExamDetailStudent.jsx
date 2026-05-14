@@ -161,6 +161,11 @@ const ExamDetailStudent = () => {
     const totalMax = questions.reduce((sum, q) => sum + (q.maxScore ?? 0), 0);
     const computedScore = totalMax > 0 ? Math.round((totalAwarded / totalMax) * 100) : 0;
 
+    const isPseudo = (exam.type ?? exam.Type ?? "").toUpperCase() === "PSEUDOCODE";
+    const isQuestionPseudo = (q) =>
+        q.expectedOutput && typeof q.expectedOutput === "object" &&
+        !Array.isArray(q.expectedOutput) && "outputs" in q.expectedOutput;
+
     const containerVariants = {
         hidden: { opacity: 0 },
         show: {
@@ -242,7 +247,10 @@ const ExamDetailStudent = () => {
                                     <div>
                                         <h4 className="text-sm font-semibold text-foreground mb-1">Criterio de Evaluación de Lógica</h4>
                                         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                                            Evaluamos que tu consulta SQL produzca exactamente el mismo conjunto de datos (columnas y filas) que la <strong className="text-foreground/80">salida esperada</strong>. La solución de referencia mostrada es solo una forma de resolverlo; otras consultas con diferente sintaxis pero misma salida son igualmente válidas.
+                                            {isPseudo
+                                                ? <>Evaluamos que tu algoritmo produzca exactamente la misma <strong className="text-foreground/80">salida esperada</strong> para las entradas dadas. Distintas implementaciones son válidas siempre que el resultado sea correcto.</>
+                                                : <>Evaluamos que tu consulta SQL produzca exactamente el mismo conjunto de datos (columnas y filas) que la <strong className="text-foreground/80">salida esperada</strong>. La solución de referencia mostrada es solo una forma de resolverlo; otras consultas con diferente sintaxis pero misma salida son igualmente válidas.</>
+                                            }
                                         </p>
                                     </div>
                                 </div>
@@ -317,55 +325,105 @@ const ExamDetailStudent = () => {
                                                 <Terminal className="h-4 w-4 text-muted-foreground" />
                                                 <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Comparación de Resultados</h4>
                                             </div>
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 bg-black/20 p-4 sm:p-5 rounded-xl border border-white/5">
 
-                                                {/* Filas esperadas */}
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <p className="text-xs font-semibold text-muted-foreground">Filas Esperadas</p>
-                                                        <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-white/5 text-muted-foreground border border-white/10">Referencia</span>
+                                            {isQuestionPseudo(q) ? (
+                                                /* ── Pseudocódigo ── */
+                                                <div className="space-y-3 bg-black/20 p-4 sm:p-5 rounded-xl border border-white/5">
+                                                    {/* Entradas */}
+                                                    <div>
+                                                        <p className="text-xs font-semibold text-indigo-400/70 mb-2">Entradas</p>
+                                                        <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/5 bg-black/20 p-3 min-h-10">
+                                                            {(q.expectedOutput?.inputs ?? []).length > 0
+                                                                ? q.expectedOutput.inputs.map((v, i) => (
+                                                                    <span key={i} className="px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-mono font-bold">{String(v)}</span>
+                                                                ))
+                                                                : <span className="text-xs text-muted-foreground italic">Sin entradas</span>
+                                                            }
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center justify-center flex-1 rounded-xl border border-white/5 bg-black/20 py-6">
-                                                        <span className="text-4xl font-black text-emerald-400">
-                                                            {q.expectedOutput ?? "—"}
-                                                        </span>
-                                                        <span className="text-sm text-muted-foreground ml-2 mt-2">filas</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Salida del estudiante */}
-                                                <div className="flex flex-col mt-4 lg:mt-0">
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <p className="text-xs font-semibold text-foreground">Tu Salida</p>
-                                                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${q.isCorrect === true ? 'bg-success/10 text-success border-success/20' : q.isCorrect === false ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-white/5 text-muted-foreground border-white/10'}`}>
-                                                            {q.isCorrect === true ? "Correcto" : q.isCorrect === false ? "Incorrecto" : "Sin respuesta"}
-                                                        </span>
-                                                    </div>
-                                                    {q.studentOutput ? (
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center justify-center rounded-xl border border-white/5 bg-black/20 py-4">
-                                                                <span className={`text-4xl font-black ${q.isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                    {q.studentOutput.rowCount ?? 0}
-                                                                </span>
-                                                                <span className="text-sm text-muted-foreground ml-2 mt-2">filas</span>
+                                                    {/* Salida esperada vs Tu salida */}
+                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                                        <div className="flex flex-col">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <p className="text-xs font-semibold text-muted-foreground">Salida Esperada</p>
+                                                                <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-white/5 text-muted-foreground border border-white/10">Referencia</span>
                                                             </div>
-                                                            {q.studentQuery && (
-                                                                <OutputTable
-                                                                    text={q.studentOutput.fields?.length
-                                                                        ? [q.studentOutput.fields.join(" | "), ...(q.studentOutput.rows ?? []).slice(0, 5).map(r => q.studentOutput.fields.map(f => String(r[f] ?? "")).join(" | "))].join("\n")
-                                                                        : ""}
-                                                                    type="student"
-                                                                />
+                                                            <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/5 bg-black/20 p-3 flex-1 min-h-12">
+                                                                {(q.expectedOutput?.outputs ?? []).length > 0
+                                                                    ? q.expectedOutput.outputs.map((v, i) => (
+                                                                        <span key={i} className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">{String(v)}</span>
+                                                                    ))
+                                                                    : <span className="text-xs text-muted-foreground italic">Sin salida</span>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <p className="text-xs font-semibold text-foreground">Tu Salida</p>
+                                                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${q.isCorrect === true ? 'bg-success/10 text-success border-success/20' : q.isCorrect === false ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-white/5 text-muted-foreground border-white/10'}`}>
+                                                                    {q.isCorrect === true ? "Correcto" : q.isCorrect === false ? "Incorrecto" : "Sin respuesta"}
+                                                                </span>
+                                                            </div>
+                                                            {q.studentOutput ? (
+                                                                <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/5 bg-black/20 p-3 flex-1 min-h-12">
+                                                                    {(q.studentOutput.outputs ?? []).length > 0
+                                                                        ? q.studentOutput.outputs.map((v, i) => (
+                                                                            <span key={i} className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold ${q.isCorrect === true ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300' : 'bg-destructive/10 border border-destructive/20 text-destructive'}`}>{String(v)}</span>
+                                                                        ))
+                                                                        : <span className="text-xs text-muted-foreground italic">Sin salida</span>
+                                                                    }
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center justify-center flex-1 rounded-xl border border-dashed border-white/10 bg-white/1 py-6">
+                                                                    <p className="text-xs text-muted-foreground italic">Sin respuesta registrada</p>
+                                                                </div>
                                                             )}
                                                         </div>
-                                                    ) : (
-                                                        <div className="flex items-center justify-center flex-1 rounded-xl border border-dashed border-white/10 bg-white/1 py-6">
-                                                            <p className="text-xs text-muted-foreground italic">Sin respuesta registrada</p>
-                                                        </div>
-                                                    )}
+                                                    </div>
                                                 </div>
-
-                                            </div>
+                                            ) : (
+                                                /* ── SQL ── */
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 bg-black/20 p-4 sm:p-5 rounded-xl border border-white/5">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <p className="text-xs font-semibold text-muted-foreground">Filas Esperadas</p>
+                                                            <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-white/5 text-muted-foreground border border-white/10">Referencia</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-center flex-1 rounded-xl border border-white/5 bg-black/20 py-6">
+                                                            <span className="text-4xl font-black text-emerald-400">{q.expectedOutput ?? "—"}</span>
+                                                            <span className="text-sm text-muted-foreground ml-2 mt-2">filas</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col mt-4 lg:mt-0">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <p className="text-xs font-semibold text-foreground">Tu Salida</p>
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${q.isCorrect === true ? 'bg-success/10 text-success border-success/20' : q.isCorrect === false ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-white/5 text-muted-foreground border-white/10'}`}>
+                                                                {q.isCorrect === true ? "Correcto" : q.isCorrect === false ? "Incorrecto" : "Sin respuesta"}
+                                                            </span>
+                                                        </div>
+                                                        {q.studentOutput ? (
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center justify-center rounded-xl border border-white/5 bg-black/20 py-4">
+                                                                    <span className={`text-4xl font-black ${q.isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>{q.studentOutput.rowCount ?? 0}</span>
+                                                                    <span className="text-sm text-muted-foreground ml-2 mt-2">filas</span>
+                                                                </div>
+                                                                {q.studentQuery && (
+                                                                    <OutputTable
+                                                                        text={q.studentOutput.fields?.length
+                                                                            ? [q.studentOutput.fields.join(" | "), ...(q.studentOutput.rows ?? []).slice(0, 5).map(r => q.studentOutput.fields.map(f => String(r[f] ?? "")).join(" | "))].join("\n")
+                                                                            : ""}
+                                                                        type="student"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center justify-center flex-1 rounded-xl border border-dashed border-white/10 bg-white/1 py-6">
+                                                                <p className="text-xs text-muted-foreground italic">Sin respuesta registrada</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
