@@ -46,6 +46,7 @@ export function AuthProvider({ children }) {
             try {
                 const res = await fetch(`${API_URL}/auth/refresh-token`, {
                     method: "POST",
+                    headers : { "Content-Type": "application/json" },
                     credentials: "include",
                     body    : JSON.stringify({ refreshToken: storedRefresh }),
 
