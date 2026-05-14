@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/Components/ui/button";
-import { Eye, FileText, Users, Plus, Clock, ChevronRight, Database } from "lucide-react";
+import { Eye, FileText, Users, Plus, Clock, ChevronRight, Database, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import DashboardLayout from "../Components/DashboardLayout";
@@ -24,6 +24,8 @@ const DashboardTeacher = () => {
     const [exams, setExams] = useState([]);
     const [loadingExams, setLoadingExams] = useState(false);
     const [errorExams, setErrorExams] = useState("");
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [deletingExamId, setDeletingExamId] = useState(null);
 
     useEffect(() => {
         const fetchExams = async () => {
@@ -50,6 +52,28 @@ const DashboardTeacher = () => {
         };
         fetchExams();
     }, [accessToken]);
+
+    const handleDeleteExam = async (e, examID) => {
+        e.stopPropagation();
+        try {
+            setDeletingExamId(examID);
+            const res = await fetch(`${API_URL}/exams/id/${examID}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${accessToken}` },
+                credentials: "include",
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Error al eliminar el examen");
+            }
+            setExams(prev => prev.filter(ex => ex.ExamID !== examID));
+            setConfirmDeleteId(null);
+        } catch (err) {
+            setErrorExams(err.message || "Error inesperado al eliminar");
+        } finally {
+            setDeletingExamId(null);
+        }
+    };
 
     // Variantes de Framer Motion
     const containerVariants = {
@@ -149,7 +173,7 @@ const DashboardTeacher = () => {
                                 onClick={item.action}
                                 className={`h-full bg-card/40 backdrop-blur-md border border-white/5 ${item.border} rounded-xl p-5 flex items-center gap-4 cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${item.hoverShadow} transition-all duration-300 ease-out group`}
                             >
-                                <div className={`w-12 h-12 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:shadow-inner transition-all duration-300`}>
+                                <div className={`w-12 h-12 ${item.bg} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:shadow-inner transition-all duration-300`}>
                                     <item.icon className={`h-6 w-6 ${item.color} group-hover:animate-pulse`} />
                                 </div>
                                 <div>
@@ -245,7 +269,7 @@ const DashboardTeacher = () => {
                                     >
                                         <div className="flex items-center flex-1 gap-4 min-w-0">
                                             {/* Dot de estado */}
-                                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:scale-150 group-hover:shadow-md transition-all duration-300"
+                                            <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm group-hover:scale-150 group-hover:shadow-md transition-all duration-300"
                                                 style={{ background: status.color, boxShadow: `0 0 8px ${status.color}80` }} />
 
                                             {/* Info */}
@@ -281,21 +305,58 @@ const DashboardTeacher = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between sm:justify-end gap-4 mt-2 sm:mt-0 w-full sm:w-auto pl-6 sm:pl-0">
+                                        <div className="flex items-center justify-between sm:justify-end gap-2 mt-2 sm:mt-0 w-full sm:w-auto pl-6 sm:pl-0">
                                             {/* Badge estado */}
-                                            <span className="text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0 border border-white/5 group-hover:border-white/20 transition-colors uppercase tracking-wider"
+                                            <span className="text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full shrink-0 border border-white/5 group-hover:border-white/20 transition-colors uppercase tracking-wider"
                                                 style={{ color: status.color, background: status.bg }}>
                                                 {status.label}
                                             </span>
 
-                                            {/* Botón */}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="flex-shrink-0 h-8 w-8 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all duration-200 active:scale-95"
-                                            >
-                                                <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
-                                            </Button>
+                                            {confirmDeleteId === exam.ExamID ? (
+                                                <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                                    <span className="text-xs text-muted-foreground hidden sm:inline">¿Seguro?</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-2.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+                                                        onClick={(e) => handleDeleteExam(e, exam.ExamID)}
+                                                        disabled={deletingExamId === exam.ExamID}
+                                                    >
+                                                        {deletingExamId === exam.ExamID
+                                                            ? <div className="w-3 h-3 border-2 border-destructive/30 border-t-destructive rounded-full animate-spin" />
+                                                            : "Sí"}
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-2.5 text-xs text-muted-foreground hover:bg-muted/20 transition-all duration-200"
+                                                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                                    >
+                                                        No
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {/* Botón eliminar */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 active:scale-95 opacity-0 group-hover:opacity-100"
+                                                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(exam.ExamID); }}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+
+                                                    {/* Botón navegar */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="shrink-0 h-8 w-8 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all duration-200 active:scale-95"
+                                                    >
+                                                        <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     </motion.div>
                                 );
