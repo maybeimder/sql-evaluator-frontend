@@ -119,7 +119,7 @@ const Login = ({ noPermission = false }) => {
 
             if (!res.ok) throw new Error(data.message || "Credenciales inválidas");
             if (!data.accessToken) throw new Error("No se recibió accessToken del servidor.");
-            login(data.accessToken, data.user);
+            login(data.accessToken, data.refreshToken, data.user);
             const from = location.state?.from;
             const roles = data.user?.Roles ?? [];
             const dashboardByRole =

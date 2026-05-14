@@ -21,14 +21,11 @@ export function AuthProvider({ children }) {
 
     const [user, setUser] = useState(initialUser)
 
-    function login(token, userData) {
-        console.log("Se hace login")
+    function login(token, refreshToken, userData) {
         setAccessToken(token);
         setUser(userData);
-
-        // Persistir solo el accessToken (seguro)
-        console.log(token, userData)
-        localStorage.setItem("accessToken", token);
+        localStorage.setItem("accessToken",  token);
+        localStorage.setItem("refreshToken", refreshToken);  // ← guardar
         localStorage.setItem("user", JSON.stringify(userData));
     }
 
@@ -43,15 +40,22 @@ export function AuthProvider({ children }) {
     // 🔄 REFRESH AUTOMÁTICO
     useEffect(() => {
         const interval = setInterval(async () => {
+        const storedRefresh = localStorage.getItem("refreshToken");
+        if (!storedRefresh) return logout();
+
             try {
                 const res = await fetch(`${API_URL}/auth/refresh-token`, {
                     method: "POST",
                     credentials: "include",
+                    body    : JSON.stringify({ refreshToken: storedRefresh }),
+
                 });
-                console.log(res)
+
                 if (!res.ok) throw new Error();
 
                 const data = await res.json();
+                localStorage.setItem("accessToken", data.accessToken);
+                setAccessToken(data.accessToken);
                 login(data.accessToken, user);
             } catch {
                 sessionStorage.setItem("session_expired", "1");
