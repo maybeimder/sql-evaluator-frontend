@@ -56,7 +56,6 @@ export function AuthProvider({ children }) {
                 const data = await res.json();
                 localStorage.setItem("accessToken", data.accessToken);
                 setAccessToken(data.accessToken);
-                login(data.accessToken, user);
             } catch {
                 sessionStorage.setItem("session_expired", "1");
                 logout();

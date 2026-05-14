@@ -159,6 +159,7 @@ const EditExam = () => {
             Duration: Number(durationMinutes),
             DatabaseID: databaseID || null,
             AllowsRejoin: allowsRejoin,
+            Type: examType.toUpperCase(),
             questions: questions.map(q => ({
                 QuestionTitle: q.title,
                 QuestionText: q.description,
