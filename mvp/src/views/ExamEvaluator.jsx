@@ -19,12 +19,12 @@ const ExamEvaluator = () => {
     const [answers, setAnswers] = useState({});
     const [output, setOutput] = useState("");
     const [isExecuting, setIsExecuting] = useState(false);
-    const [remainingTime, setRemainingTime] = useState(() => {
-        const saved = localStorage.getItem(`exam_timer_${examID}`);
-        return saved ? parseInt(saved) : 3600;
-    });
+    const [remainingTime, setRemainingTime] = useState(null);
+    const [timeUp, setTimeUp] = useState(false);
     const [executionTime, setExecutionTime] = useState(null);
     const timerRef = useRef(null);
+    const endTimeRef = useRef(null);
+    const latestAssignmentID = useRef(state?.assignmentID ?? null);
 
     const [questionsArray, setQuestionsArray] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -35,6 +35,7 @@ const ExamEvaluator = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
     const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
     const [comparisonResult, setComparisonResult] = useState(null);
     const [answerOutput, setAnswerOutput] = useState(null);
@@ -73,6 +74,7 @@ const ExamEvaluator = () => {
     const totalQuestions = questionsArray.length;
     const allowsRejoin = examInfo?.AllowsRejoin ?? true;
 
+
     // Fetch questions
     useEffect(() => {
         fetch(`${API_URL}/exams/id/${examID}/questions`, {
@@ -99,9 +101,18 @@ const ExamEvaluator = () => {
             .then(r => r.json())
             .then(list => {
                 const exams = Array.isArray(list) ? list : (list.exams ?? []);
-                const match = exams.find(e => e.ExamID === examID);
+                // eslint-disable-next-line eqeqeq
+                const match = exams.find(e => e.ExamID == examID);
                 if (!match) return null;
-                if (!assignmentID && match.AssignmentID) setAssignmentID(match.AssignmentID);
+                if (!assignmentID && match.AssignmentID) {
+                    setAssignmentID(match.AssignmentID);
+                    latestAssignmentID.current = match.AssignmentID;
+                }
+                if (match.EndTime) {
+                    const timerEnd = new Date(match.EndTime);
+                    endTimeRef.current = timerEnd;
+                    setRemainingTime(Math.max(0, Math.floor((timerEnd - new Date()) / 1000)));
+                }
                 const type = match.Type ?? "SQL";
                 setExamType(type);
                 if (type === "PSEUDOCODE") return null;
@@ -117,26 +128,37 @@ const ExamEvaluator = () => {
     }, [examID]);
 
 
-    // Timer — saves remaining seconds to localStorage on every tick
+    // Timer — computes remaining seconds from EndTime on every tick
     useEffect(() => {
         timerRef.current = setInterval(() => {
-            setRemainingTime((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    localStorage.removeItem(`exam_timer_${examID}`);
-                    return 0;
-                }
-                const next = prev - 1;
-                localStorage.setItem(`exam_timer_${examID}`, next.toString());
-                return next;
-            });
+            if (!endTimeRef.current) return;
+            const remaining = Math.max(0, Math.floor((endTimeRef.current - new Date()) / 1000));
+            setRemainingTime(remaining);
+            if (remaining <= 0) {
+                clearInterval(timerRef.current);
+                setTimeUp(true);
+            }
         }, 1000);
         return () => clearInterval(timerRef.current);
-    }, [examID]);
+    }, []);
+
+    // Auto-submit when time runs out
+    useEffect(() => {
+        if (!timeUp) return;
+        fetch(`${API_URL}/assignments/id/${latestAssignmentID.current ?? examID}/finish`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            credentials: "include",
+        }).catch(() => {}).finally(() => {
+            setTimeout(() => navigate("/dashboard/student"), 3000);
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [timeUp]);
 
     if (loading) return <p>Cargando preguntas...</p>;
 
     const formatTime = (seconds) => {
+        if (seconds === null) return "--:--";
         const m = Math.floor(seconds / 60).toString().padStart(2, "0");
         const s = (seconds % 60).toString().padStart(2, "0");
         return `${m}:${s}`;
@@ -240,7 +262,7 @@ const ExamEvaluator = () => {
                 credentials: "include",
             });
             if (!res.ok) throw new Error("Error al enviar el examen");
-            localStorage.removeItem(`exam_timer_${examID}`);
+            setShowSubmitModal(false);
             setSubmitSuccess(true);
             setTimeout(() => navigate("/dashboard/student"), 2000);
         } catch {
@@ -340,6 +362,102 @@ const ExamEvaluator = () => {
                 )}
             </AnimatePresence>
 
+            {/* Time Up Overlay */}
+            <AnimatePresence>
+                {timeUp && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                            className="bg-[#111320] border border-red-500/20 rounded-2xl p-8 w-full max-w-sm mx-4 shadow-2xl text-center"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-5">
+                                <Clock className="h-8 w-8 text-red-400" />
+                            </div>
+                            <h2 className="text-xl font-bold text-foreground mb-2">¡Se acabó el tiempo!</h2>
+                            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                                Tu tiempo ha expirado. Tus respuestas están siendo enviadas automáticamente.
+                            </p>
+                            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                                Enviando y redirigiendo...
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Submit Confirmation Modal */}
+            <AnimatePresence>
+                {showSubmitModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-[#111320] border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
+                        >
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-foreground mb-1">¿Enviar examen?</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        Esta acción es definitiva. Una vez enviado no podrás modificar tus respuestas.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mb-5 p-3 bg-white/5 border border-white/10 rounded-xl">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">Preguntas respondidas</span>
+                                    <span className="font-bold text-foreground">
+                                        {Object.keys(answers).filter(k => answers[k]?.trim()).length + (sqlCode.trim() ? 1 : 0)} / {totalQuestions}
+                                    </span>
+                                </div>
+                                {remainingTime !== null && remainingTime > 0 && (
+                                    <div className="flex items-center justify-between text-xs mt-2">
+                                        <span className="text-muted-foreground">Tiempo restante</span>
+                                        <span className="font-mono font-bold text-foreground">{formatTime(remainingTime)}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white transition-colors"
+                                    onClick={() => setShowSubmitModal(false)}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="flex-1 transition-colors"
+                                    onClick={handleSubmitExam}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />Enviando...</>
+                                    ) : "Enviar Examen"}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Header General */}
             <motion.header
                 initial={{ y: -20, opacity: 0 }}
@@ -378,7 +496,7 @@ const ExamEvaluator = () => {
                         </Button>
                         <Button
                             size="sm"
-                            onClick={handleSubmitExam}
+                            onClick={() => setShowSubmitModal(true)}
                             disabled={isSubmitting || submitSuccess}
                             className="h-8 text-xs gap-1.5 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-300"
                         >

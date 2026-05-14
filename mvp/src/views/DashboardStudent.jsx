@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Clock, CheckCircle2, Play, Database, LogOut } from "lucide-react";
+import { Trophy, Clock, CheckCircle2, Play, Database, LogOut, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import DashboardLayout from "../Components/DashboardLayout";
@@ -18,6 +18,12 @@ const DashboardStudent = () => {
     const [errorMsg, setErrorMsg] = useState("");
     const [startingExamId, setStartingExamId] = useState(null);
     const [avgScore, setAvgScore] = useState(null);
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const id = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(id);
+    }, []);
 
     async function logout_function() {
         logout();
@@ -110,12 +116,31 @@ const DashboardStudent = () => {
             if (!res.ok && res.status !== 409) {
                 throw new Error(data.error ?? "No se pudo iniciar el examen");
             }
-            navigate(`/exam/take/${exam.ExamID}`, { state: { examID: exam.ExamID, assignmentID } });
+            navigate(`/exam/take/${exam.ExamID}`, { state: { examID: exam.ExamID, assignmentID, duration: exam.Duration } });
         } catch (err) {
             setErrorMsg(err.message || "Error al iniciar el examen");
         } finally {
             setStartingExamId(null);
         }
+    };
+
+    const formatCountdown = (ms) => {
+        const totalSecs = Math.max(0, Math.floor(ms / 1000));
+        const hours = Math.floor(totalSecs / 3600);
+        const mins = Math.floor((totalSecs % 3600) / 60);
+        const secs = totalSecs % 60;
+        if (hours > 0) return `${hours}h ${mins}m`;
+        if (mins > 0) return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+        return `${secs}s`;
+    };
+
+    const getExamAvailability = (exam) => {
+        const start = exam.StartTime ? new Date(exam.StartTime) : null;
+        const end = exam.EndTime ? new Date(exam.EndTime) : null;
+        if (!start) return { canStart: true };
+        if (now < start) return { canStart: false, startsIn: formatCountdown(start - now), startTime: start };
+        if (end && now > end) return { canStart: false, ended: true };
+        return { canStart: true };
     };
 
     const getScoreStyle = (score) => ({
@@ -304,16 +329,26 @@ const DashboardStudent = () => {
                                 </motion.div>
                             ) : (
                                 <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
-                                    {availableExams.map((exam) => (console.log("EXAM OBJECT:", exam),
+                                    {availableExams.map((exam) => {
+                                        const avail = getExamAvailability(exam);
+                                        const isLocked = !avail.canStart;
+                                        return (
                                         <motion.div
                                             variants={itemVariants}
                                             key={exam.ExamID}
-                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-white/5 rounded-xl bg-white/2 hover:bg-white/4 hover:-translate-y-0.5 hover:shadow-md hover:border-white/10 transition-all duration-300"
+                                            className={`group flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-xl transition-all duration-300 ${
+                                                isLocked
+                                                    ? "border-white/5 bg-white/1 opacity-80"
+                                                    : "border-white/5 bg-white/2 hover:bg-white/4 hover:-translate-y-0.5 hover:shadow-md hover:border-white/10"
+                                            }`}
                                         >
                                             <div className="mb-4 sm:mb-0">
-                                                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                                                    {exam.Title}
-                                                </h3>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    {isLocked && <Lock className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
+                                                    <h3 className={`font-semibold transition-colors ${isLocked ? "text-foreground/60" : "text-foreground group-hover:text-primary"}`}>
+                                                        {exam.Title}
+                                                    </h3>
+                                                </div>
                                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1.5">
                                                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                                                         <Clock className="h-3 w-3 opacity-70" />
@@ -325,23 +360,47 @@ const DashboardStudent = () => {
                                                         <span className="font-medium text-foreground/70">Fin:</span> {formatDateTime(exam.EndTime)}
                                                     </p>
                                                 </div>
-                                                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-warning/10 border border-warning/20">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse"></div>
-                                                    <p className="text-[10px] font-medium text-warning uppercase tracking-wider">
-                                                        Intentos pendientes: {exam.pending}
-                                                    </p>
+                                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                    {avail.canStart ? (
+                                                        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-success/10 border border-success/20">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></div>
+                                                            <p className="text-[10px] font-medium text-success uppercase tracking-wider">En curso</p>
+                                                        </div>
+                                                    ) : avail.startsIn ? (
+                                                        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20">
+                                                            <Clock className="h-3 w-3 text-amber-400" />
+                                                            <p className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider">
+                                                                Inicia en {avail.startsIn}
+                                                            </p>
+                                                        </div>
+                                                    ) : null}
+                                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-warning/10 border border-warning/20">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse"></div>
+                                                        <p className="text-[10px] font-medium text-warning uppercase tracking-wider">
+                                                            Intentos pendientes: {exam.pending}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <Button
                                                 onClick={() => handleStart(exam)}
-                                                disabled={startingExamId === exam.ExamID}
-                                                className="w-full sm:w-auto relative overflow-hidden group/btn hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] active:scale-95 transition-all duration-200"
+                                                disabled={isLocked || startingExamId === exam.ExamID}
+                                                className={`w-full sm:w-auto relative overflow-hidden transition-all duration-200 ${
+                                                    isLocked
+                                                        ? "opacity-50 cursor-not-allowed"
+                                                        : "group/btn hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] active:scale-95"
+                                                }`}
                                             >
                                                 <span className="relative z-10 flex items-center justify-center gap-2">
                                                     {startingExamId === exam.ExamID ? (
                                                         <>
                                                             <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                             Iniciando...
+                                                        </>
+                                                    ) : isLocked && avail.startsIn ? (
+                                                        <>
+                                                            <Lock className="h-3.5 w-3.5" />
+                                                            Disponible en {avail.startsIn}
                                                         </>
                                                     ) : (
                                                         <>
@@ -354,7 +413,8 @@ const DashboardStudent = () => {
                                                 </span>
                                             </Button>
                                         </motion.div>
-                                    ))}
+                                        );
+                                    })}
                                 </motion.div>
                             )}
                         </CardContent>

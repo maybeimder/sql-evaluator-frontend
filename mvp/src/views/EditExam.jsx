@@ -29,6 +29,7 @@ const EditExam = () => {
         if (type === "pseudocode") setDatabaseID("");
     };
     const [loading, setLoading] = useState(true);
+    const [isLocked, setIsLocked] = useState(false);
     const [saving, setSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [fieldErrors, setFieldErrors] = useState({});
@@ -64,9 +65,25 @@ const EditExam = () => {
                 const examData = await examRes.json();
                 const exam = examData.exam;
 
+                const now = new Date();
+                if (exam.StartTime && exam.EndTime) {
+                    const start = new Date(exam.StartTime);
+                    const end = new Date(exam.EndTime);
+                    if (now >= start && now < end) {
+                        setIsLocked(true);
+                        setLoading(false);
+                        return;
+                    }
+                }
+
                 setExamTitle(exam.Title || "");
                 setExamDescription(exam.Description || "");
-                setDurationMinutes(exam.Duration ? String(exam.Duration) : "60");
+                if (exam.EndTime && exam.StartTime) {
+                    const diffMs = new Date(exam.EndTime) - new Date(exam.StartTime);
+                    setDurationMinutes(String(Math.round(diffMs / 60000)));
+                } else {
+                    setDurationMinutes("60");
+                }
                 setDatabaseID(exam.DatabaseID || "");
                 setAllowsRejoin(exam.AllowsRejoin || false);
                 setExamType(exam.Type || "sql");
@@ -208,6 +225,32 @@ const EditExam = () => {
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                     <p className="text-sm text-muted-foreground animate-pulse">Cargando examen...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (isLocked) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center px-4">
+                <div className="flex flex-col items-center gap-5 max-w-md text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
+                        <Clock className="h-8 w-8 text-yellow-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-foreground mb-2">Examen en curso</h2>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            No puedes editar este examen mientras está siendo rendido por los estudiantes. Espera a que finalice para hacer cambios.
+                        </p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        className="gap-2 border-white/10 hover:bg-white/5"
+                        onClick={() => navigate(`/teacher/exams/${id}`)}
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Volver al examen
+                    </Button>
                 </div>
             </div>
         );
@@ -563,58 +606,6 @@ const EditExam = () => {
                             </Button>
                         </div>
 
-                        {/* Base de Datos */}
-                        <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl p-6">
-                            <div className="flex items-center gap-2 mb-5">
-                                <Database className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-bold text-foreground">Asignar Base de Datos</span>
-                            </div>
-                            {examType === "pseudocode" ? (
-                                <div className="flex items-center gap-3.5 p-3.5 rounded-xl"
-                                    style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.5)" }}>
-                                    <div className="relative w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                                        style={{ border: "1px solid #6366f1" }}>
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-primary">Sin base de datos</p>
-                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Requerido para pseudocódigo</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-2.5">
-                                    {[
-                                        { id: "", label: "Sin base de datos", sub: "Preguntas teóricas / libres" },
-                                        { id: "db-usuarios", label: "Usuarios DB", sub: "Esquema importado" },
-                                        { id: "db-productos", label: "Productos DB", sub: "Esquema importado" },
-                                        { id: "db-biblioteca", label: "Biblioteca DB", sub: "Esquema importado" },
-                                    ].map(db => (
-                                        <button
-                                            key={db.id}
-                                            onClick={() => setDatabaseID(db.id)}
-                                            className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200"
-                                            style={{
-                                                background: databaseID === db.id ? "rgba(99,102,241,0.1)" : "rgba(0,0,0,0.2)",
-                                                border: databaseID === db.id ? "1px solid rgba(99,102,241,0.5)" : "1px solid rgba(255,255,255,0.05)",
-                                            }}
-                                        >
-                                            <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0"
-                                                style={{ borderColor: databaseID === db.id ? "#6366f1" : "" }}>
-                                                {databaseID === db.id && (
-                                                    <div className="w-2 h-2 rounded-full bg-primary" />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className={`text-sm font-bold transition-colors ${databaseID === db.id ? "text-primary" : "text-foreground"}`}>
-                                                    {db.label}
-                                                </p>
-                                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{db.sub}</p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </motion.div>
                 </div>
             </div>

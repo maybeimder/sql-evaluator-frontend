@@ -361,7 +361,9 @@ const TeacherExamDetail = () => {
                                         <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Duración</p>
                                     </div>
                                     <p className="text-lg font-bold text-foreground">
-                                        {exam.Duration ? `${exam.Duration} min` : "Sin límite"}
+                                        {exam.StartTime && exam.EndTime
+                                            ? `${Math.round((new Date(exam.EndTime) - new Date(exam.StartTime)) / 60000)} min`
+                                            : "Sin límite"}
                                     </p>
                                 </div>
                                 <div className="bg-background/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-center transition-colors hover:bg-background/60">
