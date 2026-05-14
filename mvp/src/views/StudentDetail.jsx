@@ -1,21 +1,37 @@
 import { Button } from "@/Components/ui/button";
 import { Database, ArrowLeft, Mail, Calendar, Award, FileText, ChevronRight, GraduationCap } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useAuth } from "../AuthContext";
 import { motion } from "framer-motion";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const StudentDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { accessToken } = useAuth();
 
-  // Mock data — reemplazar con fetch real cuando el backend esté listo
-  const student = {
-    id: 1,
-    name: "Juan Pérez",
-    email: "juan.perez@uninorte.edu.co",
-    enrollmentDate: "15/01/2024",
-    examsTaken: 12,
-    averageScore: 85,
-  };
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudent = async () => {
+      try {
+        const res = await fetch(`${API_URL}/users/id/${id}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok) setStudent(data.user ?? data);
+      } catch (err) {
+        console.error("[StudentDetail] Error cargando estudiante:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudent();
+  }, [id, accessToken]);
 
   const examHistory = [
     { id: 1, exam: "SQL Básico — SELECT", score: 90, date: "20/03/2024", status: "Aprobado" },
@@ -34,8 +50,28 @@ const StudentDetail = () => {
     return { color: "#f87171", bg: "rgba(248,113,113,0.1)" };
   };
 
-  const initials = student.name.split(" ").map(w => w[0]).slice(0, 2).join("");
-  const avgStyle = getScoreStyle(student.averageScore);
+  if (loading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-sm text-muted-foreground">Cargando estudiante...</p>
+    </div>
+  );
+
+  if (!student) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-sm text-destructive">No se pudo cargar el estudiante.</p>
+    </div>
+  );
+
+  const name = student.Name ?? student.name ?? "—";
+  const email = student.Email ?? student.email ?? "—";
+  const enrollmentDate = student.CreatedAt
+    ? new Date(student.CreatedAt).toLocaleDateString("es-CO")
+    : (student.enrollmentDate ?? "—");
+  const examsTaken = student.ExamsTaken ?? student.examsTaken ?? 0;
+  const averageScore = student.AverageScore ?? student.averageScore ?? 0;
+
+  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("");
+  const avgStyle = getScoreStyle(averageScore);
 
   // Animations
   const containerVariants = {
@@ -97,15 +133,15 @@ const StudentDetail = () => {
                 {/* Detalles */}
                 <div className="flex flex-col justify-center h-full pt-1">
                   <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Perfil del Estudiante</p>
-                  <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">{student.name}</h1>
+                  <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">{name}</h1>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-muted-foreground">
                     <div className="flex items-center justify-center sm:justify-start gap-2">
                       <Mail className="h-4 w-4 opacity-70" />
-                      <span className="text-sm font-medium">{student.email}</span>
+                      <span className="text-sm font-medium">{email}</span>
                     </div>
                     <div className="flex items-center justify-center sm:justify-start gap-2">
                       <Calendar className="h-4 w-4 opacity-70" />
-                      <span className="text-sm font-medium">Inscrito el {student.enrollmentDate}</span>
+                      <span className="text-sm font-medium">Inscrito el {enrollmentDate}</span>
                     </div>
                   </div>
                 </div>
@@ -117,7 +153,7 @@ const StudentDetail = () => {
                   <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mb-3">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-3xl font-black text-foreground mb-1 leading-none">{student.examsTaken}</p>
+                  <p className="text-3xl font-black text-foreground mb-1 leading-none">{examsTaken}</p>
                   <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">Exámenes</p>
                 </div>
                 
@@ -129,7 +165,7 @@ const StudentDetail = () => {
                     <GraduationCap className="h-4 w-4" style={{ color: avgStyle.color }} />
                   </div>
                   <p className="text-3xl font-black mb-1 leading-none relative z-10" style={{ color: avgStyle.color }}>
-                    {student.averageScore}<span className="text-xl">%</span>
+                    {averageScore}<span className="text-xl">%</span>
                   </p>
                   <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold relative z-10">Promedio</p>
                 </div>
@@ -182,7 +218,7 @@ const StudentDetail = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 + (idx * 0.05) }}
                             key={exam.id}
-                            onClick={() => navigate(`/teacher/exams/${exam.id}/students/${student.id}`)}
+                            onClick={() => navigate(`/teacher/exams/${exam.id}/students/${id}`)}
                             className="group flex flex-col sm:grid sm:grid-cols-[2.5fr_1fr_1fr_auto] gap-4 sm:gap-0 items-start sm:items-center px-6 sm:px-8 py-5 hover:bg-white/5 transition-all duration-300 cursor-pointer relative"
                         >
                             {/* Línea indicadora on hover */}
