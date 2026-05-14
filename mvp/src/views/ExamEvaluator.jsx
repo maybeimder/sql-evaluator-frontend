@@ -104,6 +104,7 @@ const ExamEvaluator = () => {
                 // eslint-disable-next-line eqeqeq
                 const match = exams.find(e => e.ExamID == examID);
                 if (!match) return null;
+                setExamInfo(match);
                 if (!assignmentID && match.AssignmentID) {
                     setAssignmentID(match.AssignmentID);
                     latestAssignmentID.current = match.AssignmentID;
@@ -492,7 +493,7 @@ const ExamEvaluator = () => {
                             className="text-muted-foreground hover:text-white hover:bg-white/5 transition-colors h-8 text-xs hidden sm:flex"
                         >
                             <LogOut className="h-3.5 w-3.5 sm:mr-2" />
-                            <span className="hidden sm:inline">Salir sin guardar</span>
+                            <span className="hidden sm:inline">{allowsRejoin ? "Salir sin guardar" : "Salir"}</span>
                         </Button>
                         <Button
                             size="sm"

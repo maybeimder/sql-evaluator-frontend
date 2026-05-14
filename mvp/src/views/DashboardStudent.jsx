@@ -71,13 +71,23 @@ const DashboardStudent = () => {
             .catch(() => {});
     }, [accessToken]);
 
-    const availableExams = exams.filter((exam) => exam.pending > 0);
+    const availableExams = exams.filter((exam) => {
+        if (!exam.pending || exam.pending === 0) return false;
+        const end = exam.EndTime ? new Date(exam.EndTime) : null;
+        return !end || now <= end;
+    });
+    const expiredExams = exams.filter((exam) => {
+        if (!exam.pending || exam.pending === 0) return false;
+        if (exam.completed > 0) return false;
+        const end = exam.EndTime ? new Date(exam.EndTime) : null;
+        return end && now > end;
+    });
     const completedExams = exams.filter((exam) => exam.completed > 0);
 
     const totalCompletedExams = completedExams.length;
     const totalPendingExams = availableExams.length;
+    const totalHistoryExams = completedExams.length + expiredExams.length;
     const totalExams = exams.length;
-
     const progressPercentage =
         totalExams > 0 ? Math.round((totalCompletedExams / totalExams) * 100) : 0;
 
@@ -443,7 +453,7 @@ const DashboardStudent = () => {
                                     <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
                                     <p className="text-sm text-muted-foreground animate-pulse">Cargando exámenes...</p>
                                 </div>
-                            ) : completedExams.length === 0 ? (
+                            ) : completedExams.length === 0 && expiredExams.length === 0 ? (
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -472,8 +482,6 @@ const DashboardStudent = () => {
                                                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
                                                         {exam.Title}
                                                     </h3>
-
-                                                    {/* SCRUM-137 — Puntaje del examen */}
                                                     {exam.score !== null && exam.score !== undefined && (
                                                         <div
                                                             className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full text-xs font-bold border"
@@ -483,7 +491,6 @@ const DashboardStudent = () => {
                                                             {exam.score}%
                                                         </div>
                                                     )}
-
                                                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
                                                         <p className="text-xs text-muted-foreground">
                                                             <span className="font-medium text-foreground/70">Completado:</span> {exam.completed} vez{exam.completed > 1 ? "es" : ""}
@@ -493,6 +500,39 @@ const DashboardStudent = () => {
                                                             <span className="font-medium text-foreground/70">Fin:</span> {formatDate(exam.EndTime)}
                                                         </p>
                                                     </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center sm:justify-end w-full sm:w-auto gap-3">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => navigate(`/exams/${exam.ExamID}`)}
+                                                    className="w-full sm:w-auto border-white/10 hover:bg-primary hover:text-primary-foreground hover:border-primary active:scale-95 transition-all duration-200 group/btn"
+                                                >
+                                                    Ver detalles
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 group-hover/btn:translate-x-1 transition-transform"><path d="m9 18 6-6-6-6" /></svg>
+                                                </Button>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                    {expiredExams.map((exam) => (
+                                        <motion.div
+                                            variants={itemVariants}
+                                            key={exam.ExamID}
+                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-white/5 rounded-xl bg-white/1 hover:bg-white/3 hover:-translate-y-0.5 hover:border-white/10 transition-all duration-300 opacity-70 hover:opacity-100"
+                                        >
+                                            <div className="flex items-start sm:items-center gap-4 mb-4 sm:mb-0">
+                                                <div className="p-2 bg-destructive/10 rounded-full shrink-0 mt-1 sm:mt-0">
+                                                    <Clock className="h-5 w-5 text-destructive/70" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-foreground/70 group-hover:text-foreground transition-colors">{exam.Title}</h3>
+                                                    <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-destructive/10 text-destructive/80 border-destructive/20">
+                                                        Vencido sin completar
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        <span className="font-medium text-foreground/70">Venció:</span> {formatDate(exam.EndTime)}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center sm:justify-end w-full sm:w-auto gap-3">

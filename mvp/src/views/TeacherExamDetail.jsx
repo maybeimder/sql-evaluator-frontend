@@ -44,6 +44,12 @@ const TeacherExamDetail = () => {
     const [loadingStudents, setLoadingStudents] = useState(false);
     const [studentsError, setStudentsError] = useState("");
 
+    const [now, setNow] = useState(new Date());
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 60000);
+        return () => clearInterval(interval);
+    }, []);
+
     useEffect(() => {
         const fetchExamInfo = async () => {
             if (!accessToken || !id) return;
@@ -257,14 +263,15 @@ const TeacherExamDetail = () => {
     const answeredCount = exam.AnsweredCount ?? 0;
     const avgScore = exam.AvgScore ?? null;
 
-    const now = new Date();
-    let examStatus = "Activo";
-    if (exam?.EndTime) {
-        const end = new Date(exam.EndTime);
-        if (end.getTime() < now.getTime()) {
-            examStatus = "Cerrado";
-        }
-    }
+    const getExamStatus = () => {
+        const start = exam?.StartTime ? new Date(exam.StartTime) : null;
+        const end = exam?.EndTime ? new Date(exam.EndTime) : null;
+        if (!start || !end) return { label: "Sin fecha", isActive: false };
+        if (now < start) return { label: "Próximo", isActive: false };
+        if (now > end) return { label: "Cerrado", isActive: false };
+        return { label: "Activo", isActive: true };
+    };
+    const examStatus = getExamStatus();
 
     const filteredStudents = students.filter((s) => {
         const name = s.FullName || s.name || "";
@@ -307,9 +314,9 @@ const TeacherExamDetail = () => {
                                 <div>
                                     <div className="flex flex-wrap items-center gap-3 mb-2">
                                         <CardTitle className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">{exam.Title}</CardTitle>
-                                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${examStatus === "Activo" ? "bg-success/10 text-success border-success/20" : "bg-muted/20 text-muted-foreground border-muted/30"}`}>
-                                            {examStatus === "Activo" && <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>}
-                                            {examStatus}
+                                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${examStatus.isActive ? "bg-success/10 text-success border-success/20" : "bg-muted/20 text-muted-foreground border-muted/30"}`}>
+                                            {examStatus.isActive && <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>}
+                                            {examStatus.label}
                                         </div>
                                     </div>
                                     <CardDescription className="text-sm text-muted-foreground/80 max-w-2xl leading-relaxed">

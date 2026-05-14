@@ -13,8 +13,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 const parseISOToForm = (isoString) => {
     if (!isoString) return { date: "", time: "" };
     const d = new Date(isoString);
-    const date = d.toISOString().split("T")[0];
-    const time = d.toTimeString().slice(0, 5);
+    const pad = (n) => String(n).padStart(2, "0");
+    const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     return { date, time };
 };
 
@@ -119,7 +120,7 @@ const EditExam = () => {
 
     const buildStartTimeISO = () => {
         if (!deadlineDate || !deadlineTime) return null;
-        return new Date(`${deadlineDate}T${deadlineTime}:00`).toISOString();
+        return `${deadlineDate}T${deadlineTime}:00`;
     };
 
     const addQuestion = () => {
@@ -164,6 +165,7 @@ const EditExam = () => {
             setFieldErrors(fErrors);
             setQuestionErrors(qErrors);
             setErrorMsg("Revisá los campos marcados en rojo antes de guardar.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
         setFieldErrors({});
