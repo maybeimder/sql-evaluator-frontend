@@ -36,12 +36,22 @@ const ExamEvaluator = () => {
     const [submitError, setSubmitError] = useState("");
     const [questionPanelOpen, setQuestionPanelOpen] = useState(false);
     const [comparisonResult, setComparisonResult] = useState(null);
+    const [answerOutput, setAnswerOutput] = useState(null);
     const [showExitModal, setShowExitModal] = useState(false);
+    const [dbSchema, setDbSchema] = useState(null);
+    const [schemaOpen, setSchemaOpen] = useState(true);
 
     const currentQuestion = questionsArray[currentQuestionIndex] ? {
+        questionID: questionsArray[currentQuestionIndex].QuestionID,
         title: questionsArray[currentQuestionIndex].QuestionTitle,
         description: questionsArray[currentQuestionIndex].QuestionText,
-        expectedOutput: questionsArray[currentQuestionIndex].ExpectedOutput?.text ?? questionsArray[currentQuestionIndex].ExpectedOutput,
+        expectedRows: (() => {
+            const eo = questionsArray[currentQuestionIndex].ExpectedOutput;
+            if (eo === null || eo === undefined) return null;
+            if (typeof eo === "number") return eo;
+            if (typeof eo === "object") return eo.rowCount ?? null;
+            return null;
+        })(),
         points: questionsArray[currentQuestionIndex].Value,
         type: "SQL",
         tableSchema: questionsArray[currentQuestionIndex].TableSchema
@@ -57,26 +67,34 @@ const ExamEvaluator = () => {
         fetch(`${API_URL}/exams/id/${examID}/questions`, {
             headers: { Authorization: `Bearer ${token}` }
         })
-        .then(r => r.json())
-        .then(data => {
-            setQuestionsArray(data.questions ?? []);
-            setLoading(false);
-        });
+            .then(r => r.json())
+            .then(data => {
+                setQuestionsArray(data.questions ?? []);
+                setLoading(false);
+            });
     }, [examID]);
 
-    // If assignmentID wasn't passed via router state, resolve it from the exam list
+    // Resolve assignmentID + DatabaseID from the student's exam list, then fetch schema
     useEffect(() => {
-        if (assignmentID) return;
         fetch(`${API_URL}/exams`, {
             headers: { Authorization: `Bearer ${token}` }
         })
-        .then(r => r.json())
-        .then((list) => {
-            const match = Array.isArray(list) ? list.find(e => e.ExamID === examID) : null;
-            if (match?.AssignmentID) setAssignmentID(match.AssignmentID);
-        })
-        .catch(() => {});
-    }, [examID, assignmentID]);
+            .then(r => r.json())
+            .then(list => {
+                const exams = Array.isArray(list) ? list : (list.exams ?? []);
+                const match = exams.find(e => e.ExamID === examID);
+                if (!match) return null;
+                if (!assignmentID && match.AssignmentID) setAssignmentID(match.AssignmentID);
+                const databaseID = match.DatabaseID ?? null;
+                if (!databaseID) return null;
+                return fetch(`${API_URL}/databases/id/${databaseID}/schema`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+            })
+            .then(r => r?.json())
+            .then(data => { if (data?.ok) setDbSchema(data.schema); })
+            .catch(() => { });
+    }, [examID]);
 
 
     // Timer — saves remaining seconds to localStorage on every tick
@@ -104,22 +122,66 @@ const ExamEvaluator = () => {
         return `${m}:${s}`;
     };
 
-    const handleRunQuery = () => {
+    const handleRunQuery = async () => {
+        if (!sqlCode.trim() || !assignmentID || !currentQuestion?.questionID) return;
         setIsExecuting(true);
         setComparisonResult(null);
+        setAnswerOutput(null);
+        setOutput("");
         const start = performance.now();
-        setTimeout(() => {
-            const resultado = "✓ Consulta ejecutada correctamente\n\n3 registros encontrados:\n\nid | nombre        | email              | edad\n1  | Ana García    | ana@email.com      | 24\n2  | Luis Pérez    | luis@email.com     | 31\n5  | María López   | maria@email.com    | 22";
-            setOutput(resultado);
-            setIsExecuting(false);
-            const end = performance.now();
-            const elapsed = end - start;
+        try {
+            const res = await fetch(`${API_URL}/assignments/id/${assignmentID}/submit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                credentials: "include",
+                body: JSON.stringify({ questionID: currentQuestion.questionID, answer: sqlCode }),
+            });
+            const data = await res.json();
+            const elapsed = performance.now() - start;
             setExecutionTime(elapsed < 1000 ? `${elapsed.toFixed(0)}ms` : `${(elapsed / 1000).toFixed(2)}s`);
 
-            const outputNormalized = resultado.toLowerCase().replace(/\s+/g, " ").trim();
-            const expectedNormalized = (currentQuestion?.expectedOutput ?? "").toLowerCase().replace(/\s+/g, " ").trim();
-            setComparisonResult(outputNormalized.includes(expectedNormalized) ? "correct" : "incorrect");
-        }, 400);
+            if (!res.ok) {
+                setOutput(data.error ?? "Error al ejecutar la consulta");
+                setComparisonResult("incorrect");
+                return;
+            }
+
+            if (data.errorMessage) {
+                setOutput(data.errorMessage);
+                setComparisonResult("incorrect");
+                return;
+            }
+
+            const ao = data.answerOutput;
+            setAnswerOutput(ao);
+
+            const fields = ao?.fields ?? [];
+            const rows = ao?.rows ?? [];
+            const rowCount = ao?.rowCount ?? 0;
+
+            let text = `${rowCount} fila(s) encontradas`;
+            if (fields.length > 0) {
+                text += "\n\n" + fields.join(" | ");
+                text += "\n" + rows.slice(0, 8).map(r => fields.map(f => String(r[f] ?? "")).join(" | ")).join("\n");
+                if (rows.length > 8) text += `\n... y ${rows.length - 8} más`;
+            }
+            setOutput(text);
+
+            console.log("isCorrect:", data.isCorrect, "expectedRows:", currentQuestion.expectedRows, "rowCount:", rowCount);
+
+            if (data.isCorrect !== null && data.isCorrect !== undefined) {
+                setComparisonResult(data.isCorrect ? "correct" : "incorrect");
+            } else if (currentQuestion.expectedRows !== null) {
+                setComparisonResult(
+                    (data.answerOutput?.rowCount === currentQuestion.expectedRows) ? "correct" : "incorrect"
+                );
+            }
+        } catch (err) {
+            setOutput(err.message ?? "Error de conexión");
+            setComparisonResult("incorrect");
+        } finally {
+            setIsExecuting(false);
+        }
     };
 
     const containerVariants = {
@@ -160,6 +222,7 @@ const ExamEvaluator = () => {
         setCurrentQuestionIndex(newIndex);
         setOutput("");
         setComparisonResult(null);
+        setAnswerOutput(null);
         setExecutionTime(null);
     };
 
@@ -227,7 +290,7 @@ const ExamEvaluator = () => {
                                     className={`flex-1 transition-colors ${!allowsRejoin
                                         ? "bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
                                         : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
-                                    }`}
+                                        }`}
                                     onClick={handleExitConfirm}
                                     disabled={isSubmitting}
                                 >
@@ -364,7 +427,60 @@ const ExamEvaluator = () => {
                         </div>
 
                         {/* Contenido Pregunta (Scrollable) */}
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 custom-scrollbar">
+
+                            {/* DB Schema */}
+                            {dbSchema && (
+                                <div className="rounded-xl border border-white/5 bg-[#090a10] overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSchemaOpen(o => !o)}
+                                        className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/5 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <DbIcon className="h-3.5 w-3.5 text-primary/70" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70">Esquema de la DB</span>
+                                        </div>
+                                        {schemaOpen
+                                            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                                            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                        }
+                                    </button>
+
+                                    <AnimatePresence initial={false}>
+                                        {schemaOpen && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="overflow-hidden border-t border-white/5"
+                                            >
+                                                <div className="p-3 space-y-3">
+                                                    {Object.entries(dbSchema).map(([table, cols]) => (
+                                                        <div key={table}>
+                                                            <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest mb-1.5 font-mono">
+                                                                {table}
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {cols.map(col => (
+                                                                    <span
+                                                                        key={col.column}
+                                                                        className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/5"
+                                                                    >
+                                                                        <span className="text-foreground/80">{col.column}</span>
+                                                                        <span className="text-muted-foreground/60">{col.type}</span>
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            )}
 
                             <div className="text-sm text-foreground/90 leading-relaxed">
                                 <p>{currentQuestion?.description}</p>
@@ -386,19 +502,20 @@ const ExamEvaluator = () => {
                                 </div>
                             )}
 
-                            {/* Salida Esperada */}
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                    <Info className="h-3.5 w-3.5 text-success/60" />
-                                    <h4 className="text-xs font-bold uppercase tracking-wider text-success/60">Salida Esperada</h4>
+                            {/* Filas Esperadas */}
+                            {currentQuestion?.expectedRows !== null && currentQuestion?.expectedRows !== undefined && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <Info className="h-3.5 w-3.5 text-success/60" />
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-success/60">Filas Esperadas</h4>
+                                    </div>
+                                    <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group flex items-center gap-3">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-green-500/50 transition-colors"></div>
+                                        <span className="text-2xl font-black text-green-400 pl-2">{currentQuestion.expectedRows}</span>
+                                        <span className="text-xs text-muted-foreground">filas</span>
+                                    </div>
                                 </div>
-                                <div className="bg-[#090a10] border border-white/5 rounded-xl p-3 relative overflow-hidden group">
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 group-hover:bg-green-500/50 transition-colors"></div>
-                                    <code className="text-[13px] text-green-400/90 font-mono pl-2 block break-all">
-                                        {currentQuestion?.expectedOutput}
-                                    </code>
-                                </div>
-                            </div>
+                            )}
 
                         </div>
 
@@ -511,57 +628,64 @@ const ExamEvaluator = () => {
                         {/* Console Output Area */}
                         <div className="flex-1 p-4 overflow-y-auto custom-scrollbar relative">
                             <AnimatePresence mode="wait">
-                                {output && comparisonResult && (
+                                {output && (
                                     <motion.div
+                                        key="output"
                                         initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.2 }}
-                                        className="mt-4 rounded-xl border p-4"
-                                        style={comparisonResult === "correct" ? {
-                                            background: 'rgba(52,211,153,0.05)',
-                                            borderColor: 'rgba(52,211,153,0.2)'
-                                        } : {
-                                            background: 'rgba(248,113,113,0.05)',
-                                            borderColor: 'rgba(248,113,113,0.2)'
-                                        }}
+                                        className="space-y-3"
                                     >
-                                        <div className="flex items-center gap-2 mb-3">
-                                            {comparisonResult === "correct" ? (
-                                                <CheckCircle2 className="h-4 w-4 text-success" />
-                                            ) : (
-                                                <span className="text-destructive text-sm">✕</span>
-                                            )}
-                                            <span className="text-xs font-bold uppercase tracking-wider"
-                                                style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
-                                                {comparisonResult === "correct"
-                                                    ? "¡Tu consulta produce la salida esperada!"
-                                                    : "Tu salida no coincide con la esperada"}
-                                            </span>
-                                        </div>
+                                        {/* Raw output */}
+                                        <pre className="text-[12px] font-mono text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                                            {output}
+                                        </pre>
 
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                                                    Salida esperada
-                                                </p>
-                                                <div className="bg-black/30 rounded-lg p-3 border border-white/5">
-                                                    <code className="text-[12px] font-mono text-success/80">
-                                                        {currentQuestion?.expectedOutput}
-                                                    </code>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                                                    Tu salida
-                                                </p>
-                                                <div className="bg-black/30 rounded-lg p-3 border border-white/5">
-                                                    <code className="text-[12px] font-mono"
+                                        {/* Comparison block */}
+                                        {comparisonResult && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 6 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.15 }}
+                                                className="rounded-xl border p-4"
+                                                style={comparisonResult === "correct" ? {
+                                                    background: 'rgba(52,211,153,0.05)',
+                                                    borderColor: 'rgba(52,211,153,0.2)'
+                                                } : {
+                                                    background: 'rgba(248,113,113,0.05)',
+                                                    borderColor: 'rgba(248,113,113,0.2)'
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    {comparisonResult === "correct" ? (
+                                                        <CheckCircle2 className="h-4 w-4 text-success" />
+                                                    ) : (
+                                                        <span className="text-destructive text-sm">✕</span>
+                                                    )}
+                                                    <span className="text-xs font-bold uppercase tracking-wider"
                                                         style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
-                                                        {output.split('\n').slice(0, 4).join('\n')}
-                                                    </code>
+                                                        {comparisonResult === "correct"
+                                                            ? "¡Cantidad de filas correcta!"
+                                                            : "La cantidad de filas no coincide"}
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Filas esperadas</p>
+                                                        <div className="bg-black/30 rounded-lg p-3 border border-white/5 text-center">
+                                                            <span className="text-xl font-black text-success/80">{currentQuestion?.expectedRows}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Filas obtenidas</p>
+                                                        <div className="bg-black/30 rounded-lg p-3 border border-white/5 text-center">
+                                                            <span className="text-xl font-black" style={{ color: comparisonResult === "correct" ? '#34d399' : '#f87171' }}>
+                                                                {answerOutput?.rowCount ?? 0}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
                                     </motion.div>
                                 )}
                             </AnimatePresence>

@@ -16,6 +16,7 @@ const DashboardStudent = () => {
     const [exams, setExams] = useState([]);
     const [loadingExams, setLoadingExams] = useState(true);
     const [errorMsg, setErrorMsg] = useState("");
+    const [startingExamId, setStartingExamId] = useState(null);
 
     async function logout_function() {
         logout();
@@ -88,6 +89,29 @@ const DashboardStudent = () => {
     const itemVariants = {
         hidden: { opacity: 0, y: 20 },
         show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    };
+
+    const handleStart = async (exam) => {
+        const assignmentID = exam.AssignmentID ?? exam.assignmentID;
+        if (!assignmentID) return;
+        setStartingExamId(exam.ExamID);
+        setErrorMsg("");
+        try {
+            const res = await fetch(`${API_URL}/assignments/id/${assignmentID}/start`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${accessToken}` },
+                credentials: "include",
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok && res.status !== 409) {
+                throw new Error(data.error ?? "No se pudo iniciar el examen");
+            }
+            navigate(`/exam/take/${exam.ExamID}`, { state: { examID: exam.ExamID, assignmentID } });
+        } catch (err) {
+            setErrorMsg(err.message || "Error al iniciar el examen");
+        } finally {
+            setStartingExamId(null);
+        }
     };
 
     const getScoreStyle = (score) => ({
@@ -331,14 +355,24 @@ const DashboardStudent = () => {
                                                 </div>
                                             </div>
                                             <Button
-                                                onClick={() => navigate(`/exam/take/${exam.ExamID}`, { state: { examID: exam.ExamID, assignmentID: exam.AssignmentID ?? exam.assignmentID ?? null } })}
+                                                onClick={() => handleStart(exam)}
+                                                disabled={startingExamId === exam.ExamID}
                                                 className="w-full sm:w-auto relative overflow-hidden group/btn hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] active:scale-95 transition-all duration-200"
                                             >
                                                 <span className="relative z-10 flex items-center justify-center gap-2">
-                                                    Comenzar
-                                                    <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center group-hover/btn:bg-white/30 transition-colors">
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover/btn:translate-x-0.5 transition-transform"><path d="m9 18 6-6-6-6" /></svg>
-                                                    </div>
+                                                    {startingExamId === exam.ExamID ? (
+                                                        <>
+                                                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                            Iniciando...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            Comenzar
+                                                            <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center group-hover/btn:bg-white/30 transition-colors">
+                                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover/btn:translate-x-0.5 transition-transform"><path d="m9 18 6-6-6-6" /></svg>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </span>
                                             </Button>
                                         </motion.div>

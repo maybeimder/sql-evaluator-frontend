@@ -49,13 +49,20 @@ const EditExam = () => {
             if (!accessToken || !id) return;
             try {
                 setLoading(true);
-                const res = await fetch(`${API_URL}/exams/id/${id}`, {
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                    credentials: "include",
-                });
-                if (!res.ok) throw new Error("No se pudo cargar el examen");
-                const data = await res.json();
-                const exam = data.exam;
+                const [examRes, questionsRes] = await Promise.all([
+                    fetch(`${API_URL}/exams/id/${id}`, {
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                        credentials: "include",
+                    }),
+                    fetch(`${API_URL}/exams/id/${id}/questions`, {
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                        credentials: "include",
+                    }),
+                ]);
+
+                if (!examRes.ok) throw new Error("No se pudo cargar el examen");
+                const examData = await examRes.json();
+                const exam = examData.exam;
 
                 setExamTitle(exam.Title || "");
                 setExamDescription(exam.Description || "");
@@ -68,18 +75,22 @@ const EditExam = () => {
                 setDeadlineDate(date);
                 setDeadlineTime(time);
 
-                const loadedQuestions = Array.isArray(exam.Questions) && exam.Questions.length > 0
-                    ? exam.Questions.map((q, i) => ({
-                        id: q.QuestionID || Date.now() + i,
-                        title: q.QuestionTitle || "",
-                        description: q.QuestionText || "",
-                        solutionExample: q.SolutionExample || "",
-                        expectedOutput: q.ExpectedOutput?.text || q.ExpectedOutput || "",
-                        points: q.Value || 10,
-                    }))
-                    : [{ id: Date.now(), title: "", description: "", solutionExample: "", expectedOutput: "", points: 10 }];
-
-                setQuestions(loadedQuestions);
+                if (questionsRes.ok) {
+                    const questionsData = await questionsRes.json();
+                    const loadedQuestions = questionsData.ok && questionsData.questions?.length > 0
+                        ? questionsData.questions.map((q, i) => ({
+                            id: q.QuestionID || Date.now() + i,
+                            title: q.QuestionTitle || "",
+                            description: q.QuestionText || "",
+                            solutionExample: q.SolutionExample || "",
+                            expectedOutput: q.ExpectedOutput ?? "",
+                            points: q.Value || 10,
+                        }))
+                        : [{ id: Date.now(), title: "", description: "", solutionExample: "", expectedOutput: "", points: 10 }];
+                    setQuestions(loadedQuestions);
+                } else {
+                    setQuestions([{ id: Date.now(), title: "", description: "", solutionExample: "", expectedOutput: "", points: 10 }]);
+                }
             } catch (err) {
                 setErrorMsg(err.message || "Error al cargar el examen");
             } finally {
@@ -127,7 +138,7 @@ const EditExam = () => {
             if (!q.title.trim()) e.title = "Obligatorio";
             if (!q.description.trim()) e.description = "Obligatorio";
             if (!q.solutionExample.trim()) e.solutionExample = "Obligatorio";
-            if (!q.expectedOutput.trim()) e.expectedOutput = "Obligatorio";
+            if (q.expectedOutput === "" || q.expectedOutput === null || q.expectedOutput === undefined) e.expectedOutput = "Obligatorio";
             if (!q.points || q.points <= 0) e.points = "Debe ser > 0";
             if (Object.keys(e).length > 0) qErrors[q.id] = e;
         });
@@ -151,7 +162,7 @@ const EditExam = () => {
             questions: questions.map(q => ({
                 QuestionTitle: q.title,
                 QuestionText: q.description,
-                ExpectedOutput: q.expectedOutput ? { text: q.expectedOutput } : null,
+                ExpectedOutput: q.expectedOutput !== "" && q.expectedOutput !== null && q.expectedOutput !== undefined ? Number(q.expectedOutput) : null,
                 SolutionExample: q.solutionExample,
                 Value: q.points || 0,
             })),
@@ -479,24 +490,17 @@ const EditExam = () => {
                                                     {questionErrors[question.id]?.solutionExample && <p className="text-xs text-destructive">{questionErrors[question.id].solutionExample}</p>}
                                                 </div>
 
-                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="flex gap-1.5 mr-2">
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/10"></div>
-                                                        </div>
-                                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Salida en Pantalla (Tabla)</Label>
-                                                    </div>
-                                                    <Textarea
-                                                        placeholder="Columna1 | Columna2&#10;Dato1    | Dato2"
-                                                        rows={4}
+                                                <div className="space-y-2 bg-black/20 p-4 rounded-2xl border border-white/5 flex flex-col justify-center">
+                                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Filas Esperadas</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="ej: 8"
                                                         value={question.expectedOutput}
-                                                        onChange={e => { updateQuestionField(question.id, "expectedOutput", e.target.value); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], expectedOutput: undefined } })); }}
-                                                        className="resize-none bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-                                                        style={{ fontFamily: '"JetBrains Mono", "Fira Code", monospace', color: "#34d399", lineHeight: "1.6" }}
+                                                        onChange={e => { updateQuestionField(question.id, "expectedOutput", e.target.value === "" ? "" : Number(e.target.value)); setQuestionErrors(q => ({ ...q, [question.id]: { ...q[question.id], expectedOutput: undefined } })); }}
+                                                        className={`h-10 bg-black/20 focus-visible:border-primary/50 transition-all rounded-lg text-center font-bold text-emerald-400 ${questionErrors[question.id]?.expectedOutput ? "border-destructive/70" : "border-white/10"}`}
                                                     />
-                                                    {questionErrors[question.id]?.expectedOutput && <p className="text-xs text-destructive">{questionErrors[question.id].expectedOutput}</p>}
+                                                    {questionErrors[question.id]?.expectedOutput && <p className="text-xs text-destructive ml-1">{questionErrors[question.id].expectedOutput}</p>}
                                                 </div>
                                             </div>
                                         </div>

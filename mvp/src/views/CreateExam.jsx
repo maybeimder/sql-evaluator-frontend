@@ -87,7 +87,7 @@ const CreateExam = () => {
 
     const buildStartTimeISO = () => {
         if (!deadlineDate || !deadlineTime) return null;
-        return new Date(`${deadlineDate}T${deadlineTime}:00`).toISOString();
+        return `${deadlineDate}T${deadlineTime}`;
     };
 
     const validateQuestions = (questions) => {

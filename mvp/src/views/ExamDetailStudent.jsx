@@ -1,4 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useAuth } from "../AuthContext";
 import {
     Card,
     CardHeader,
@@ -9,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, ArrowLeft, Database, Code2, Terminal, Lightbulb, Scale } from "lucide-react";
 import { motion } from "framer-motion";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 import {
     Table,
@@ -43,7 +47,7 @@ const OutputTable = ({ text, type = "student" }) => {
 
     if (!headers.length) {
         return (
-            <div className="flex items-center justify-center h-24 rounded-lg border border-dashed border-white/10 bg-white/[0.01] text-xs text-muted-foreground italic">
+            <div className="flex items-center justify-center h-24 rounded-lg border border-dashed border-white/10 bg-white/1 text-xs text-muted-foreground italic">
                 (Salida vacía)
             </div>
         );
@@ -98,97 +102,52 @@ const CodeBlock = ({ code, title, icon: Icon, isReference = false }) => (
     </div>
 );
 
-// ---------------------------------------------------------------------------
-// MOCK de datos (luego lo reemplazas con fetch)
-// ---------------------------------------------------------------------------
-const mockExamDetails = {
-    "1": {
-        id: 1,
-        title: "Funciones Agregadas",
-        professor: "María González",
-        date: "2024-01-10",
-        score: 85,
-        questions: [
-            {
-                id: 1,
-                questionTitle: "Total de ventas por cliente",
-                questionText: "Obtén el total de ventas por cliente usando SUM().",
-                solutionExample: `
-SELECT cliente_id, SUM(monto) AS total
-FROM ventas
-GROUP BY cliente_id;`,
-                expectedOutput: {
-                    text: `
-cliente_id | total
-1          | 300
-2          | 150
-          `,
-                },
-                studentQuery: `
-SELECT cliente_id, SUM(monto) AS total
-FROM ventas
-GROUP BY cliente_id;`,
-                studentOutput: {
-                    text: `
-cliente_id | total
-1          | 300
-2          | 150
-          `,
-                },
-                maxScore: 20,
-                awardedScore: 20,
-                isCorrect: true,
-            },
-            {
-                id: 2,
-                questionTitle: "Cantidad de pedidos por cliente",
-                questionText: "Cuenta cuántos pedidos tiene cada cliente.",
-                solutionExample: `
-SELECT cliente_id, COUNT(*) AS total_pedidos
-FROM pedidos
-GROUP BY cliente_id;`,
-                expectedOutput: {
-                    text: `
-cliente_id | total_pedidos
-1          | 5
-2          | 3
-          `,
-                },
-                studentQuery: `
-SELECT cliente_id, COUNT(*) AS total_pedidos
-FROM pedidos
-GROUP BY cliente_id;`,
-                studentOutput: {
-                    text: `
-cliente_id | total_pedidos
-1          | 5
-2          | 2
-          `,
-                },
-                maxScore: 20,
-                awardedScore: 10,
-                isCorrect: false,
-            },
-        ],
-    },
-};
 
 // ---------------------------------------------------------------------------
 // Componente principal
 // ---------------------------------------------------------------------------
 const ExamDetailStudent = () => {
-    const { id } = useParams(); // /exams/:id
+    const { id } = useParams();
     const navigate = useNavigate();
+    const { accessToken } = useAuth();
 
-    const exam = mockExamDetails[id];
+    const [exam, setExam] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    if (!exam) {
+    useEffect(() => {
+        const fetchResults = async () => {
+            try {
+                const res = await fetch(`${API_URL}/exams/id/${id}/results`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    credentials: "include",
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error ?? "Error cargando resultados");
+                setExam(data.result ?? data.exam ?? data);
+            } catch (err) {
+                setError(err.message || "No se pudieron cargar los resultados");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchResults();
+    }, [id, accessToken]);
+
+    if (loading) return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground">Cargando resultados...</p>
+            </div>
+        </div>
+    );
+
+    if (error || !exam) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center space-y-4">
-                    <p className="text-lg text-muted-foreground">
-                        No se encontraron detalles para este examen.
-                    </p>
+                    <p className="text-lg text-muted-foreground">{error || "No se encontraron detalles para este examen."}</p>
                     <Button variant="outline" onClick={() => navigate("/dashboard/student")}>
                         Volver al panel
                     </Button>
@@ -196,6 +155,11 @@ const ExamDetailStudent = () => {
             </div>
         );
     }
+
+    const questions = exam.questions ?? exam.Questions ?? [];
+    const totalAwarded = questions.reduce((sum, q) => sum + (q.awardedScore ?? 0), 0);
+    const totalMax = questions.reduce((sum, q) => sum + (q.maxScore ?? 0), 0);
+    const computedScore = totalMax > 0 ? Math.round((totalAwarded / totalMax) * 100) : 0;
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -261,10 +225,10 @@ const ExamDetailStudent = () => {
                                         <div className="relative">
                                             <svg className="w-20 h-20 transform -rotate-90">
                                                 <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-muted/20" />
-                                                <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-success transition-all duration-1000 ease-out" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * exam.score) / 100} strokeLinecap="round" />
+                                                <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-success transition-all duration-1000 ease-out" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * computedScore) / 100} strokeLinecap="round" />
                                             </svg>
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-xl font-bold text-success">{exam.score}%</span>
+                                                <span className="text-xl font-bold text-success">{computedScore}%</span>
                                             </div>
                                         </div>
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-3">Nota Final</span>
@@ -288,10 +252,10 @@ const ExamDetailStudent = () => {
 
                     {/* Preguntas */}
                     <div className="space-y-6">
-                        {exam.questions.map((q, index) => (
+                        {(exam.questions ?? exam.Questions ?? []).map((q, index) => (
                             <motion.div variants={itemVariants} key={q.id}>
                                 <Card className="bg-card/40 backdrop-blur-md border-white/5 overflow-hidden hover:border-white/10 transition-all duration-300 hover:shadow-lg group">
-                                    <CardHeader className="border-b border-white/5 bg-white/[0.01] p-5 sm:p-6">
+                                    <CardHeader className="border-b border-white/5 bg-white/1 p-5 sm:p-6">
                                         <div className="flex flex-col sm:flex-row justify-between gap-4">
                                             <div>
                                                 <div className="flex items-center gap-3 mb-2">
@@ -308,17 +272,21 @@ const ExamDetailStudent = () => {
                                             </div>
 
                                             <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 sm:gap-2">
-                                                {q.isCorrect ? (
+                                                {q.isCorrect === true ? (
                                                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 border border-success/20 text-success text-xs font-bold uppercase tracking-wider shadow-[0_0_10px_rgba(52,211,153,0.1)]">
                                                         <CheckCircle2 className="h-4 w-4" /> Correcto
                                                     </div>
-                                                ) : (
+                                                ) : q.isCorrect === false ? (
                                                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold uppercase tracking-wider shadow-[0_0_10px_rgba(248,113,113,0.1)]">
                                                         <XCircle className="h-4 w-4" /> Incorrecto
                                                     </div>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                                                        Sin respuesta
+                                                    </div>
                                                 )}
                                                 <p className="text-xs font-medium text-muted-foreground bg-black/20 px-3 py-1.5 rounded-full border border-white/5 flex items-center gap-1">
-                                                    <span className={`font-bold ${q.isCorrect ? "text-success" : "text-destructive"}`}>{q.awardedScore}</span>
+                                                    <span className={`font-bold ${q.isCorrect === true ? "text-success" : q.isCorrect === false ? "text-destructive" : "text-muted-foreground"}`}>{q.awardedScore}</span>
                                                     <span>/ {q.maxScore} pts</span>
                                                 </p>
                                             </div>
@@ -343,34 +311,60 @@ const ExamDetailStudent = () => {
                                             )}
                                         </div>
 
-                                        {/* Comparación de Salidas */}
+                                        {/* Comparación de Resultados */}
                                         <div className="pt-2">
                                             <div className="flex items-center gap-2 mb-4">
                                                 <Terminal className="h-4 w-4 text-muted-foreground" />
                                                 <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Comparación de Resultados</h4>
                                             </div>
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 bg-black/20 p-4 sm:p-5 rounded-xl border border-white/5">
+
+                                                {/* Filas esperadas */}
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center justify-between mb-3">
-                                                        <p className="text-xs font-semibold text-muted-foreground">
-                                                            Salida Esperada
-                                                        </p>
+                                                        <p className="text-xs font-semibold text-muted-foreground">Filas Esperadas</p>
                                                         <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-white/5 text-muted-foreground border border-white/10">Referencia</span>
                                                     </div>
-                                                    <OutputTable text={q.expectedOutput.text} type="expected" />
+                                                    <div className="flex items-center justify-center flex-1 rounded-xl border border-white/5 bg-black/20 py-6">
+                                                        <span className="text-4xl font-black text-emerald-400">
+                                                            {q.expectedOutput ?? "—"}
+                                                        </span>
+                                                        <span className="text-sm text-muted-foreground ml-2 mt-2">filas</span>
+                                                    </div>
                                                 </div>
 
+                                                {/* Salida del estudiante */}
                                                 <div className="flex flex-col mt-4 lg:mt-0">
                                                     <div className="flex items-center justify-between mb-3">
-                                                        <p className="text-xs font-semibold text-foreground">
-                                                            Tu Salida
-                                                        </p>
-                                                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${q.isCorrect ? 'bg-success/10 text-success border-success/20' : 'bg-destructive/10 text-destructive border-destructive/20'}`}>
-                                                            Obtenido
+                                                        <p className="text-xs font-semibold text-foreground">Tu Salida</p>
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${q.isCorrect === true ? 'bg-success/10 text-success border-success/20' : q.isCorrect === false ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-white/5 text-muted-foreground border-white/10'}`}>
+                                                            {q.isCorrect === true ? "Correcto" : q.isCorrect === false ? "Incorrecto" : "Sin respuesta"}
                                                         </span>
                                                     </div>
-                                                    <OutputTable text={q.studentOutput.text} type="student" />
+                                                    {q.studentOutput ? (
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-center rounded-xl border border-white/5 bg-black/20 py-4">
+                                                                <span className={`text-4xl font-black ${q.isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                    {q.studentOutput.rowCount ?? 0}
+                                                                </span>
+                                                                <span className="text-sm text-muted-foreground ml-2 mt-2">filas</span>
+                                                            </div>
+                                                            {q.studentQuery && (
+                                                                <OutputTable
+                                                                    text={q.studentOutput.fields?.length
+                                                                        ? [q.studentOutput.fields.join(" | "), ...(q.studentOutput.rows ?? []).slice(0, 5).map(r => q.studentOutput.fields.map(f => String(r[f] ?? "")).join(" | "))].join("\n")
+                                                                        : ""}
+                                                                    type="student"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-center flex-1 rounded-xl border border-dashed border-white/10 bg-white/1 py-6">
+                                                            <p className="text-xs text-muted-foreground italic">Sin respuesta registrada</p>
+                                                        </div>
+                                                    )}
                                                 </div>
+
                                             </div>
                                         </div>
                                     </CardContent>
