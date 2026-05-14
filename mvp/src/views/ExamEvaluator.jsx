@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../AuthContext";
-import manualUrl from "../assets/manual.html?url";
+import manualUrl from "../assets/MANUAL.html?url";
 
 const API_URL = import.meta.env.VITE_API_URL;
 

@@ -70,13 +70,15 @@ export function AuthProvider({ children }) {
         const originalFetch = window.fetch;
 
         window.fetch = (url, options = {}) => {
-            // Solo interceptar llamadas a tu API
             if (typeof url === "string" && url.startsWith(API_URL)) {
                 const freshToken = localStorage.getItem("accessToken");
+                const isFormData = options.body instanceof FormData;
+
                 options = {
                     ...options,
+                    credentials: "include",                          // ← agregar
                     headers: {
-                        "Content-Type": "application/json",
+                        ...(isFormData ? {} : { "Content-Type": "application/json" }),
                         ...options.headers,
                         Authorization: `Bearer ${freshToken}`,
                     },

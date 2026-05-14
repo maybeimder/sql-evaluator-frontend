@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
-import { Label } from "@/Components/ui/label";
-import { Textarea } from "@/Components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Database, Plus, Trash2, Save, X, Clock, FileText, Settings, LayoutList, GripVertical, ArrowLeft } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { motion, AnimatePresence } from "framer-motion";

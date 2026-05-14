@@ -1,7 +1,7 @@
-import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
-import { Label } from "@/Components/ui/label";
-import { Textarea } from "@/Components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Database, Plus, Trash2, Save, X, Clock, FileText, Settings, LayoutList, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -263,7 +263,17 @@ const CreateExam = () => {
                     title: q.QuestionTitle,
                     description: q.QuestionText,
                     solutionExample: q.SolutionExample,
-                    expectedOutput: q.ExpectedOutput?.rows ?? null,
+                    expectedOutput: (() => {
+                        const eo = q.ExpectedOutput;
+                        if (eo === null || eo === undefined) return null;
+                        if (typeof eo === 'number') return eo;
+                        if (typeof eo === 'object' && !Array.isArray(eo)) {
+                            if (typeof eo.rowCount === 'number') return eo.rowCount;
+                            if (typeof eo.rows === 'number') return eo.rows;
+                            if (eo.rows && typeof eo.rows === 'object' && typeof eo.rows.count === 'number') return eo.rows.count;
+                        }
+                        return null;
+                    })(),
                     points: q.Value || 10,
                     inputs: [],
                     outputs: [],

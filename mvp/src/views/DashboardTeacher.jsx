@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/Components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Eye, FileText, Users, Plus, Clock, ChevronRight, Database, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import DashboardLayout from "../Components/DashboardLayout";
+import DashboardLayout from "../components/DashboardLayout";
 import { motion } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL;

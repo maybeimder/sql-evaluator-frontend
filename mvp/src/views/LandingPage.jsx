@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Database, Code2, CheckCircle2, Users } from "lucide-react"
 import { useNavigate } from "react-router-dom";
-import { Button } from '../Components/ui/button';
+import { Button } from '../components/ui/button';
 
 // Canvas de partículas
 const ParticlesBackground = () => {

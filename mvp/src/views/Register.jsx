@@ -1,6 +1,6 @@
-import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
-import { Label } from "@/Components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -10,7 +10,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/Components/ui/select";
+} from "@/components/ui/select";
 
 // Fondo animado con blobs
 const AnimatedBackground = () => (

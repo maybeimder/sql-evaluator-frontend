@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/Components/ui/card";
-import { Button } from "@/Components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ShieldCheck, AlertCircle, CheckCircle2, Loader2, RefreshCcw } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { motion, AnimatePresence } from "framer-motion";

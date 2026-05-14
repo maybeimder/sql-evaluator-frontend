@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Trophy, Clock, CheckCircle2, Play, Database, LogOut, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import DashboardLayout from "../Components/DashboardLayout";
+import DashboardLayout from "../components/DashboardLayout";
 import { motion } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL;
