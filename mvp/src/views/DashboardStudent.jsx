@@ -17,6 +17,7 @@ const DashboardStudent = () => {
     const [loadingExams, setLoadingExams] = useState(true);
     const [errorMsg, setErrorMsg] = useState("");
     const [startingExamId, setStartingExamId] = useState(null);
+    const [avgScore, setAvgScore] = useState(null);
 
     async function logout_function() {
         logout();
@@ -53,6 +54,17 @@ const DashboardStudent = () => {
         if (accessToken) fetchExams();
     }, [accessToken]);
 
+    useEffect(() => {
+        if (!accessToken) return;
+        fetch(`${API_URL}/users/me/average`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            credentials: "include",
+        })
+            .then(r => r.json())
+            .then(data => { if (data.ok && data.average !== undefined) setAvgScore(data.average); })
+            .catch(() => {});
+    }, [accessToken]);
+
     const availableExams = exams.filter((exam) => exam.pending > 0);
     const completedExams = exams.filter((exam) => exam.completed > 0);
 
@@ -62,14 +74,6 @@ const DashboardStudent = () => {
 
     const progressPercentage =
         totalExams > 0 ? Math.round((totalCompletedExams / totalExams) * 100) : 0;
-
-    // SCRUM-136 — Puntaje acumulado
-    const avgScore = completedExams.length > 0
-        ? Math.round(
-            completedExams.reduce((sum, e) => sum + (e.score ?? e.avgScore ?? 0), 0)
-            / completedExams.length
-        )
-        : null;
 
     const formatDate = (isoString) => {
         if (!isoString) return "Sin fecha";
@@ -228,7 +232,7 @@ const DashboardStudent = () => {
                                 </p>
                                 {avgScore !== null && (
                                     <div className="mt-3 flex items-center gap-2 bg-success/10 border border-success/20 rounded-lg px-3 py-2">
-                                        <Trophy className="h-3.5 w-3.5 text-success flex-shrink-0" />
+                                        <Trophy className="h-3.5 w-3.5 text-success shrink-0" />
                                         <span className="text-xs text-success font-semibold">
                                             Promedio: {avgScore}%
                                         </span>
@@ -264,7 +268,7 @@ const DashboardStudent = () => {
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
                     <Card className="mb-6 bg-card/40 backdrop-blur-md border-white/5 hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="border-b border-white/5 bg-white/[0.02]">
+                        <CardHeader className="border-b border-white/5 bg-white/2">
                             <CardTitle className="flex items-center gap-2">
                                 <div className="p-2 bg-warning/10 rounded-lg">
                                     <Clock className="h-4 w-4 text-warning" />
@@ -304,7 +308,7 @@ const DashboardStudent = () => {
                                         <motion.div
                                             variants={itemVariants}
                                             key={exam.ExamID}
-                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-white/5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] hover:-translate-y-0.5 hover:shadow-md hover:border-white/10 transition-all duration-300"
+                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-white/5 rounded-xl bg-white/2 hover:bg-white/4 hover:-translate-y-0.5 hover:shadow-md hover:border-white/10 transition-all duration-300"
                                         >
                                             <div className="mb-4 sm:mb-0">
                                                 <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -364,7 +368,7 @@ const DashboardStudent = () => {
                     transition={{ duration: 0.5, delay: 0.5 }}
                 >
                     <Card className="bg-card/40 backdrop-blur-md border-white/5 hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="border-b border-white/5 bg-white/[0.02]">
+                        <CardHeader className="border-b border-white/5 bg-white/2">
                             <CardTitle className="flex items-center gap-2">
                                 <div className="p-2 bg-success/10 rounded-lg">
                                     <Trophy className="h-4 w-4 text-success" />
@@ -398,10 +402,10 @@ const DashboardStudent = () => {
                                         <motion.div
                                             variants={itemVariants}
                                             key={exam.ExamID}
-                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-white/5 rounded-xl bg-white/[0.01] hover:bg-white/[0.03] hover:-translate-y-0.5 hover:border-white/10 transition-all duration-300"
+                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-white/5 rounded-xl bg-white/1 hover:bg-white/3 hover:-translate-y-0.5 hover:border-white/10 transition-all duration-300"
                                         >
                                             <div className="flex items-start sm:items-center gap-4 mb-4 sm:mb-0">
-                                                <div className="p-2 bg-success/10 rounded-full flex-shrink-0 mt-1 sm:mt-0 group-hover:scale-110 group-hover:bg-success/20 transition-all duration-300">
+                                                <div className="p-2 bg-success/10 rounded-full shrink-0 mt-1 sm:mt-0 group-hover:scale-110 group-hover:bg-success/20 transition-all duration-300">
                                                     <CheckCircle2 className="h-5 w-5 text-success" />
                                                 </div>
                                                 <div>
