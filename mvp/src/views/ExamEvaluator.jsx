@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../AuthContext";
+import manualUrl from "../assets/manual.html?url";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -627,6 +628,16 @@ const ExamEvaluator = () => {
                             <div className="flex items-center gap-2">
                                 <Code2 className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-semibold text-foreground/80 tracking-wide">Espacio de trabajo</span>
+                                {examType === "PSEUDOCODE" && (
+                                    <a
+                                        href={manualUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] font-bold text-primary/70 hover:text-primary border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded-md transition-all duration-200"
+                                    >
+                                        📖 Manual
+                                    </a>
+                                )}
                             </div>
                             <Button
                                 size="sm"
