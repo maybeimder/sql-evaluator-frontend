@@ -164,32 +164,6 @@ const DashboardStudent = () => {
                     <p className="text-muted-foreground text-sm mt-1">Accede a tus exámenes y revisa tu progreso</p>
                 </motion.div>
 
-                {/* Dev preview */}
-                <div className="mb-6 p-4 rounded-xl border border-dashed border-primary/20 bg-primary/5 backdrop-blur-sm">
-                    <p className="text-[10px] font-bold text-primary/50 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse inline-block"></span>
-                        Modo previsualización
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            onClick={() => navigate("/exam/take")}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs border-primary/20 text-primary hover:bg-primary/10 gap-1.5 h-8"
-                        >
-                            <Play className="h-3 w-3" />
-                            Ir al evaluador
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/exams/3`)}
-                            className="text-xs border-white/10 text-muted-foreground hover:bg-white/5 h-8"
-                        >
-                            Ver ExamDetailStudent
-                        </Button>
-                    </div>
-                </div>
 
                 {errorMsg && (
                     <motion.div
