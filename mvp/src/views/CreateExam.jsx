@@ -37,6 +37,15 @@ const CreateExam = () => {
     const [errorMsg, setErrorMsg] = useState("");
     const [generating, setGenerating] = useState(false);
     const [genDifficulty, setGenDifficulty] = useState("medium");
+    const [genMsgIdx, setGenMsgIdx] = useState(0);
+    const genMessages = [
+        "Analizando el contexto del examen...",
+        "Diseñando preguntas con IA...",
+        "Construyendo casos de prueba...",
+        "Verificando coherencia lógica...",
+        "Puliendo los enunciados...",
+        "Casi listo...",
+    ];
     const [fieldErrors, setFieldErrors] = useState({});
     const [questionErrors, setQuestionErrors] = useState({});
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -62,7 +71,14 @@ const CreateExam = () => {
         fetchDatabases();
     }, [accessToken]);
 
-    const [selectedGroup, setSelectedGroup] = useState("");
+    useEffect(() => {
+        if (!generating) return;
+        setGenMsgIdx(0);
+        const id = setInterval(() => setGenMsgIdx(p => (p + 1) % genMessages.length), 2200);
+        return () => clearInterval(id);
+    }, [generating]);
+
+    const [selectedGroup, setSelectedGroup]= useState("");
     const mockGroups = [
         { id: "g1", name: "Bases de Datos I — Grupo 1" },
         { id: "g2", name: "Bases de Datos I — Grupo 2" },
@@ -209,14 +225,18 @@ const CreateExam = () => {
     };
 
     const handleGenerateQuestions = async () => {
-        if (!databaseID) {
+        const isPseudo = examType === "pseudocode";
+        if (!isPseudo && !databaseID) {
             setErrorMsg("Selecciona una base de datos antes de generar preguntas con IA.");
             return;
         }
         setGenerating(true);
         setErrorMsg("");
         try {
-            const res = await fetch(`${API_URL}/databases/id/${databaseID}/generate-questions`, {
+            const url = isPseudo
+                ? `${API_URL}/databases/pseudocode/generate-questions`
+                : `${API_URL}/databases/id/${databaseID}/generate-questions`;
+            const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
                 credentials: "include",
@@ -224,14 +244,31 @@ const CreateExam = () => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `Error al generar preguntas (${res.status})`);
-            setQuestions(data.questions.map((q, i) => ({
-                id: Date.now() + i,
-                title: q.QuestionTitle,
-                description: q.QuestionText,
-                solutionExample: q.SolutionExample,
-                expectedOutput: q.ExpectedOutput?.rows ?? null,
-                points: q.Value || 10,
-            })));
+            setQuestions(data.questions.map((q, i) => {
+                if (isPseudo) {
+                    const tc = q.TestCases?.[0] ?? {};
+                    return {
+                        id: Date.now() + i,
+                        title: q.QuestionTitle,
+                        description: q.QuestionText,
+                        solutionExample: q.SolutionExample,
+                        expectedOutput: null,
+                        points: q.Value || 10,
+                        inputs: Array.isArray(tc.inputs) ? tc.inputs : [],
+                        outputs: Array.isArray(tc.outputs) ? tc.outputs : [],
+                    };
+                }
+                return {
+                    id: Date.now() + i,
+                    title: q.QuestionTitle,
+                    description: q.QuestionText,
+                    solutionExample: q.SolutionExample,
+                    expectedOutput: q.ExpectedOutput?.rows ?? null,
+                    points: q.Value || 10,
+                    inputs: [],
+                    outputs: [],
+                };
+            }));
         } catch (err) {
             setErrorMsg(err.message || "Error al generar preguntas con IA");
         } finally {
@@ -825,6 +862,87 @@ const CreateExam = () => {
                 </div>
             </div>
         </div>
+
+        {/* Overlay generando con IA */}
+        <AnimatePresence>
+            {generating && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md"
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.88, y: 24 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.88, y: 24 }}
+                        transition={{ type: "spring", stiffness: 280, damping: 26 }}
+                        className="relative bg-card border border-white/10 rounded-3xl px-10 py-12 shadow-2xl max-w-xs w-full mx-4 overflow-hidden text-center"
+                    >
+                        {/* Glow background */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            <motion.div
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-primary/20 blur-3xl"
+                                animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                        </div>
+
+                        {/* Icon */}
+                        <div className="relative z-10 flex justify-center mb-7">
+                            <div className="relative w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/10">
+                                <motion.span
+                                    className="text-3xl select-none"
+                                    animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
+                                    transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+                                >
+                                    ✦
+                                </motion.span>
+                                {/* Orbiting dot */}
+                                <motion.div
+                                    className="absolute w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.8)]"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                    style={{ transformOrigin: "50% 50%", top: -5, left: "50%", marginLeft: -5 }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2 relative z-10">Generando con IA</p>
+                        <h3 className="text-xl font-extrabold text-foreground mb-5 relative z-10">Creando tu examen</h3>
+
+                        {/* Cycling message */}
+                        <div className="h-9 flex items-center justify-center relative z-10 mb-7">
+                            <AnimatePresence mode="wait">
+                                <motion.p
+                                    key={genMsgIdx}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="text-sm text-muted-foreground absolute"
+                                >
+                                    {genMessages[genMsgIdx]}
+                                </motion.p>
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Bouncing dots */}
+                        <div className="flex justify-center gap-2 relative z-10">
+                            {[0, 1, 2, 3].map(i => (
+                                <motion.div
+                                    key={i}
+                                    className="w-2 h-2 rounded-full bg-primary"
+                                    animate={{ y: [0, -8, 0], opacity: [0.4, 1, 0.4] }}
+                                    transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+                                />
+                            ))}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
 
         {/* Modal confirmar eliminar pregunta */}
         <AnimatePresence>
