@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
 import { motion } from "framer-motion";
+import GroupManager from "../Components/GroupManager";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -233,6 +234,9 @@ const StudentsList = () => {
               </div>
             </div>
           </motion.div>
+          <div className="mt-16 pt-10 border-t border-white/10">
+            <GroupManager />
+          </div>
         </motion.div>
       </div>
     </div>
