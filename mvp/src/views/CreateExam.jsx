@@ -78,13 +78,29 @@ const CreateExam = () => {
         return () => clearInterval(id);
     }, [generating]);
 
-    const [selectedGroup, setSelectedGroup]= useState("");
-    const mockGroups = [
-        { id: "g1", name: "Bases de Datos I — Grupo 1" },
-        { id: "g2", name: "Bases de Datos I — Grupo 2" },
-        { id: "g3", name: "Bases de Datos II — Grupo 1" },
-        { id: "g4", name: "Programación Avanzada — Grupo 1" },
-    ];
+    const [selectedGroup, setSelectedGroup] = useState("");
+    const [groups, setGroups] = useState([]);
+    const [groupsLoading, setGroupsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                const res = await fetch(`${API_URL}/groups`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    credentials: "include",
+                });
+                const data = await res.json();
+                if (res.ok && Array.isArray(data)) {
+                    setGroups(data);
+                }
+            } catch (err) {
+                console.error("[CreateExam] Error cargando grupos:", err);
+            } finally {
+                setGroupsLoading(false);
+            }
+        };
+        fetchGroups();
+    }, [accessToken]);
 
     const addQuestion = () => {
         setQuestions(prev => [...prev, {
@@ -832,37 +848,41 @@ const CreateExam = () => {
                                 <span className="text-sm font-bold text-foreground">Curso o Grupo</span>
                             </div>
                             <div className="space-y-2.5">
-                                {mockGroups.map(group => (
+                                {groupsLoading ? (
+                                    <p className="text-xs text-muted-foreground px-1">Cargando grupos...</p>
+                                ) : groups.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground px-1">No tienes grupos creados.</p>
+                                ) : groups.map(group => (
                                     <button
-                                        key={group.id}
+                                        key={group.GroupID}
                                         type="button"
                                         onClick={() => setSelectedGroup(
-                                            selectedGroup === group.id ? "" : group.id
+                                            selectedGroup === group.GroupID ? "" : group.GroupID
                                         )}
                                         className="w-full flex items-center gap-3.5 p-3.5 rounded-xl text-left transition-all duration-200 group"
                                         style={{
-                                            background: selectedGroup === group.id ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
-                                            border: selectedGroup === group.id
+                                            background: selectedGroup === group.GroupID ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.2)',
+                                            border: selectedGroup === group.GroupID
                                                 ? '1px solid rgba(99,102,241,0.5)'
                                                 : '1px solid rgba(255,255,255,0.05)',
                                         }}
                                     >
                                         <div className="relative w-4 h-4 rounded-full border border-white/20 flex items-center justify-center shrink-0"
-                                            style={{ borderColor: selectedGroup === group.id ? '#6366f1' : '' }}>
-                                            {selectedGroup === group.id && (
+                                            style={{ borderColor: selectedGroup === group.GroupID ? '#6366f1' : '' }}>
+                                            {selectedGroup === group.GroupID && (
                                                 <div className="w-2 h-2 rounded-full bg-primary" />
                                             )}
                                         </div>
                                         <p className="text-xs font-medium truncate"
-                                            style={{ color: selectedGroup === group.id ? '#6366f1' : '#a5aad4' }}>
-                                            {group.name}
+                                            style={{ color: selectedGroup === group.GroupID ? '#6366f1' : '#a5aad4' }}>
+                                            {group.GroupName}
                                         </p>
                                     </button>
                                 ))}
                             </div>
                             {selectedGroup && (
                                 <p className="text-xs text-primary mt-3 ml-1">
-                                    ✓ {mockGroups.find(g => g.id === selectedGroup)?.name}
+                                    ✓ {groups.find(g => g.GroupID === selectedGroup)?.GroupName}
                                 </p>
                             )}
                         </div>

@@ -1,50 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Users, ChevronDown, Trash2, UserPlus, FolderPlus,
   Mail, Activity, GraduationCap, Search, X, Check,
-  AlertTriangle
+  AlertTriangle, ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 
-// DATA MOCKEADA — reemplazar por fetches reales
-const MOCK_GROUPS = [
-  {
-    id: 1,
-    name: "Bases de Datos I - G1",
-    students: [
-      { UserID: "u1", FullName: "Alejandro Torres",  Email: "a.torres@uninorte.edu.co",  Code: "200123456", examsTaken: 5, averageScore: 87 },
-      { UserID: "u2", FullName: "Mariana Pérez",     Email: "m.perez@uninorte.edu.co",   Code: "200198765", examsTaken: 4, averageScore: 72 },
-      { UserID: "u3", FullName: "Carlos Herrera",    Email: "c.herrera@uninorte.edu.co", Code: "200112233", examsTaken: 3, averageScore: 55 },
-      { UserID: "u4", FullName: "Valentina Díaz",    Email: "v.diaz@uninorte.edu.co",    Code: "200144556", examsTaken: 6, averageScore: 91 },
-    ],
-  },
-  {
-    id: 2,
-    name: "Bases de Datos I - G2",
-    students: [
-      { UserID: "u5", FullName: "Sofía Ramírez",     Email: "s.ramirez@uninorte.edu.co", Code: "200167890", examsTaken: 2, averageScore: 68 },
-      { UserID: "u6", FullName: "Miguel Ángel Ruiz", Email: "m.ruiz@uninorte.edu.co",    Code: "200134567", examsTaken: 5, averageScore: 83 },
-    ],
-  },
-  {
-    id: 3,
-    name: "Taller SQL Avanzado",
-    students: [
-      { UserID: "u7", FullName: "Isabella Castro",   Email: "i.castro@uninorte.edu.co",  Code: "200178901", examsTaken: 7, averageScore: 95 },
-    ],
-  },
-];
-
-// Estudiantes de Roble disponibles para añadir
-const MOCK_ALL_STUDENTS = [
-  { UserID: "u8",  FullName: "Daniel Moreno",    Email: "d.moreno@uninorte.edu.co",   Code: "200190123" },
-  { UserID: "u9",  FullName: "Lucía Suárez",     Email: "l.suarez@uninorte.edu.co",   Code: "200156789" },
-  { UserID: "u10", FullName: "Andrés Gómez",     Email: "a.gomez@uninorte.edu.co",    Code: "200145678" },
-  { UserID: "u1",  FullName: "Alejandro Torres", Email: "a.torres@uninorte.edu.co",   Code: "200123456" },
-  { UserID: "u2",  FullName: "Mariana Pérez",    Email: "m.perez@uninorte.edu.co",    Code: "200198765" },
-];
+const API_URL = import.meta.env.VITE_API_URL;
 // ─────────────────────────────────────────────
 
 const getScoreStyle = (score) => {
@@ -106,81 +70,251 @@ const ConfirmModal = ({ groupName, onConfirm, onCancel }) => (
 
 // ── Componente principal ───────────────────────
 const GroupManager = () => {
-  const [groups, setGroups]                   = useState(MOCK_GROUPS);
-  const [selectedGroupId, setSelectedGroupId] = useState(MOCK_GROUPS[0].id);
+  const [groups, setGroups]                   = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [dropdownOpen, setDropdownOpen]       = useState(false);
   const [newGroupName, setNewGroupName]       = useState("");
   const [addSearch, setAddSearch]             = useState("");
   const [addResults, setAddResults]           = useState([]);
   const [showConfirm, setShowConfirm]         = useState(false);
-  const [feedback, setFeedback]               = useState(null); // { type: "success"|"error", msg }
+  const [feedback, setFeedback]               = useState(null);
+  const [allStudents, setAllStudents]         = useState(null);
+  const [allExams, setAllExams]               = useState([]);
+  const [selectedExamId, setSelectedExamId]   = useState("");
 
-  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+  const [studentsMap, setStudentsMap]         = useState({});
+  const [groupStats, setGroupStats]           = useState({});
+  const [isLoading, setIsLoading]             = useState(true);
 
-  // Stats del grupo seleccionado
-  const activeStudents = selectedGroup?.students.filter((s) => s.examsTaken > 0).length ?? 0;
-  const avgScore = selectedGroup?.students.length
-    ? (selectedGroup.students.reduce((sum, s) => sum + s.averageScore, 0) / selectedGroup.students.length).toFixed(1)
-    : "0.0";
+  const selectedGroup = groups.find((g) => g.GroupID === selectedGroupId);
+  const selectedGroupStudents = studentsMap[selectedGroupId] || [];
+  const currentStats = groupStats[selectedGroupId] || { average: 0, completedExams: 0 };
+
+  const activeStudents = currentStats.completedExams > 0 ? selectedGroupStudents.length : 0;
+  const avgScore = typeof currentStats.average === 'number' ? currentStats.average.toFixed(1) : "0.0";
 
   const showFeedback = (type, msg) => {
     setFeedback({ type, msg });
     setTimeout(() => setFeedback(null), 3000);
   };
 
+  // Cargar grupos iniciales
+  useEffect(() => {
+    fetch(`${API_URL}/groups`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setGroups(data);
+          if (data.length > 0) {
+            setSelectedGroupId(data[0].GroupID);
+          }
+        }
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setIsLoading(false);
+      });
+
+    fetch(`${API_URL}/exams`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && Array.isArray(data.exams)) {
+          setAllExams(data.exams);
+        } else if (Array.isArray(data)) {
+          setAllExams(data);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  // Cargar estudiantes y stats cuando cambia el grupo
+  useEffect(() => {
+    if (!selectedGroupId) return;
+
+    fetch(`${API_URL}/groups/students/${selectedGroupId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setStudentsMap(prev => ({ ...prev, [selectedGroupId]: data }));
+        }
+      })
+      .catch(console.error);
+
+    fetch(`${API_URL}/groups/${selectedGroupId}/average`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          setGroupStats(prev => ({ ...prev, [selectedGroupId]: data }));
+        }
+      })
+      .catch(console.error);
+  }, [selectedGroupId]);
+
   // Crear grupo
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     const trimmed = newGroupName.trim();
     if (!trimmed) return;
-    const exists = groups.some((g) => g.name.toLowerCase() === trimmed.toLowerCase());
+    
+    const exists = groups.some((g) => g.GroupName.toLowerCase() === trimmed.toLowerCase());
     if (exists) { showFeedback("error", "Ya existe un grupo con ese nombre."); return; }
-    const newGroup = { id: Date.now(), name: trimmed, students: [] };
-    setGroups((prev) => [...prev, newGroup]);
-    setSelectedGroupId(newGroup.id);
-    setNewGroupName("");
-    showFeedback("success", `Grupo "${trimmed}" creado correctamente.`);
-    // TODO: POST /groups  con { name: trimmed }
+    
+    try {
+      const res = await fetch(`${API_URL}/groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ GroupName: trimmed })
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.ok) {
+        setGroups(prev => [...prev, data.group]);
+        setSelectedGroupId(data.group.GroupID);
+        setNewGroupName("");
+        showFeedback("success", `Grupo "${trimmed}" creado correctamente.`);
+      } else {
+        showFeedback("error", data.error || "Error al crear grupo.");
+      }
+    } catch(err) {
+      console.error(err);
+      showFeedback("error", "Error de red al crear grupo.");
+    }
   };
 
   // Eliminar grupo
-  const handleDeleteGroup = () => {
-    setGroups((prev) => prev.filter((g) => g.id !== selectedGroupId));
-    setSelectedGroupId(groups.find((g) => g.id !== selectedGroupId)?.id ?? null);
-    setShowConfirm(false);
-    showFeedback("success", `Grupo "${selectedGroup.name}" eliminado.`);
-    // TODO: DELETE /groups/:id
+  const handleDeleteGroup = async () => {
+    try {
+      const res = await fetch(`${API_URL}/groups/${selectedGroupId}`, {
+        method: "DELETE"
+      });
+      
+      if (res.ok) {
+         setGroups((prev) => prev.filter((g) => g.GroupID !== selectedGroupId));
+         const remaining = groups.filter((g) => g.GroupID !== selectedGroupId);
+         setSelectedGroupId(remaining.length > 0 ? remaining[0].GroupID : null);
+         setShowConfirm(false);
+         showFeedback("success", `Grupo eliminado.`);
+      } else {
+         setShowConfirm(false);
+         showFeedback("error", "El endpoint para eliminar grupos no está implementado en el backend.");
+      }
+    } catch(err) {
+      setShowConfirm(false);
+      showFeedback("error", "El endpoint para eliminar grupos falló de manera inesperada.");
+    }
+  };
+
+  // Asignar Examen
+  const handleAssignExam = async () => {
+    if (!selectedGroupId || !selectedExamId) return;
+    try {
+      const res = await fetch(`${API_URL}/groups/assign-exam`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupID: selectedGroupId, examID: selectedExamId })
+      });
+      const data = await res.json().catch(() => ({}));
+      
+      if (res.ok && data.ok) {
+        showFeedback("success", "Examen asignado al grupo exitosamente.");
+        setSelectedExamId("");
+      } else {
+        showFeedback("error", data.error || "Error al asignar examen al grupo.");
+      }
+    } catch (err) {
+      console.error(err);
+      showFeedback("error", "Error de red al asignar examen.");
+    }
+  };
+
+  // Remover estudiante del grupo
+  const handleRemoveStudent = async (student) => {
+    try {
+      const res = await fetch(`${API_URL}/groups/del-student`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupAssignmentID: student.GroupAssignmentID })
+      });
+      
+      if (res.ok) {
+        setStudentsMap(prev => ({
+          ...prev,
+          [selectedGroupId]: prev[selectedGroupId].filter(s => s.GroupAssignmentID !== student.GroupAssignmentID)
+        }));
+        showFeedback("success", `${student.FullName} removido del grupo.`);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showFeedback("error", data.error || "Error al remover estudiante.");
+      }
+    } catch (err) {
+      console.error(err);
+      showFeedback("error", "Error de red al remover estudiante.");
+    }
   };
 
   // Buscar estudiante para añadir
-  const handleAddSearch = (value) => {
+  const handleAddSearch = async (value) => {
     setAddSearch(value);
     if (!value.trim()) { setAddResults([]); return; }
-    const results = MOCK_ALL_STUDENTS.filter((s) =>
-      s.FullName.toLowerCase().includes(value.toLowerCase()) ||
-      s.Email.toLowerCase().includes(value.toLowerCase())
-    );
-    setAddResults(results);
-    // TODO: GET /users/search?q=value  y reemplazar MOCK_ALL_STUDENTS
+    
+    const filterData = (data) => {
+      const results = data.filter((s) =>
+        s.FullName.toLowerCase().includes(value.toLowerCase()) ||
+        s.Email.toLowerCase().includes(value.toLowerCase())
+      );
+      setAddResults(results);
+    };
+
+    if (allStudents) {
+      filterData(allStudents);
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_URL}/users/roles/3`);
+      if (!res.ok) return;
+      const data = await res.json();
+      
+      if(data.ok && Array.isArray(data.users)) {
+        setAllStudents(data.users);
+        filterData(data.users);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Añadir estudiante al grupo
-  const handleAddStudent = (student) => {
-    const alreadyIn = selectedGroup.students.some((s) => s.UserID === student.UserID);
+  const handleAddStudent = async (student) => {
+    const alreadyIn = selectedGroupStudents.some((s) => s.UserID === student.UserID);
     if (alreadyIn) {
       showFeedback("error", `${student.FullName} ya pertenece a este grupo.`);
       return;
     }
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === selectedGroupId
-          ? { ...g, students: [...g.students, { ...student, examsTaken: 0, averageScore: 0 }] }
-          : g
-      )
-    );
-    setAddSearch("");
-    setAddResults([]);
-    showFeedback("success", `${student.FullName} añadido al grupo.`);
-    // TODO: POST /groups/:id/students  con { userId: student.UserID }
+    
+    try {
+      const res = await fetch(`${API_URL}/groups/new-student`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupID: selectedGroupId, userID: student.UserID })
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.ok) {
+        setStudentsMap(prev => ({
+          ...prev,
+          [selectedGroupId]: [...(prev[selectedGroupId] || []), { ...student }]
+        }));
+        setAddSearch("");
+        setAddResults([]);
+        showFeedback("success", `${student.FullName} añadido al grupo.`);
+      } else {
+        showFeedback("error", data.error || "Error al añadir estudiante.");
+      }
+    } catch (err) {
+      console.error(err);
+      showFeedback("error", "Error de red al añadir estudiante.");
+    }
   };
 
   const containerVariants = {
@@ -196,7 +330,7 @@ const GroupManager = () => {
     <div className="w-full pb-12">
       {showConfirm && (
         <ConfirmModal
-          groupName={selectedGroup?.name}
+          groupName={selectedGroup?.GroupName}
           onConfirm={handleDeleteGroup}
           onCancel={() => setShowConfirm(false)}
         />
@@ -246,7 +380,7 @@ const GroupManager = () => {
                 <Users className="h-4 w-4 text-primary" />
               </div>
               <span className="text-sm font-bold text-foreground">
-                {selectedGroup?.name ?? "Selecciona un grupo"}
+                {selectedGroup?.GroupName ?? "Selecciona un grupo"}
               </span>
             </div>
             <ChevronDown
@@ -265,14 +399,14 @@ const GroupManager = () => {
               >
                 {groups.map((g) => (
                   <button
-                    key={g.id}
-                    onClick={() => { setSelectedGroupId(g.id); setDropdownOpen(false); }}
+                    key={g.GroupID}
+                    onClick={() => { setSelectedGroupId(g.GroupID); setDropdownOpen(false); }}
                     className={`w-full flex items-center justify-between px-5 py-3.5 text-sm transition-all hover:bg-white/5 ${
-                      g.id === selectedGroupId ? "text-primary font-bold bg-primary/5" : "text-foreground font-medium"
+                      g.GroupID === selectedGroupId ? "text-primary font-bold bg-primary/5" : "text-foreground font-medium"
                     }`}
                   >
-                    <span>{g.name}</span>
-                    <span className="text-xs text-muted-foreground">{g.students.length} estudiantes</span>
+                    <span>{g.GroupName}</span>
+                    <span className="text-xs text-muted-foreground">{(studentsMap[g.GroupID] || []).length} estudiantes</span>
                   </button>
                 ))}
                 {groups.length === 0 && (
@@ -316,10 +450,10 @@ const GroupManager = () => {
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground">
-                {selectedGroup?.name ?? "Sin grupo"}
+                {selectedGroup?.GroupName ?? "Sin grupo"}
               </h2>
               <p className="text-xs text-muted-foreground">
-                {selectedGroup?.students.length ?? 0} estudiantes en este grupo
+                {selectedGroupStudents.length} estudiantes en este grupo
               </p>
             </div>
           </div>
@@ -334,7 +468,7 @@ const GroupManager = () => {
               </div>
 
               {/* Filas */}
-              {!selectedGroup || selectedGroup.students.length === 0 ? (
+              {!selectedGroup || selectedGroupStudents.length === 0 ? (
                 <div className="px-6 py-14 text-center">
                   <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
                     <Users className="h-7 w-7 text-muted-foreground/40" />
@@ -344,8 +478,8 @@ const GroupManager = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-white/5">
-                  {selectedGroup.students.map((student, idx) => {
-                    const scoreStyle = getScoreStyle(student.averageScore);
+                  {selectedGroupStudents.map((student, idx) => {
+                    const scoreStyle = getScoreStyle(student.averageScore || 0);
                     return (
                       <motion.div
                         key={student.UserID}
@@ -372,15 +506,24 @@ const GroupManager = () => {
                         </div>
                         {/* Exámenes */}
                         <span className="text-sm text-muted-foreground font-medium">
-                          <span className="text-foreground">{student.examsTaken}</span> resueltos
+                          <span className="text-foreground">{student.examsTaken || 0}</span> resueltos
                         </span>
                         {/* Promedio */}
-                        <span
-                          className="text-xs font-black px-2.5 py-1 rounded-md w-fit border"
-                          style={{ color: scoreStyle.color, background: scoreStyle.bg, borderColor: scoreStyle.border }}
-                        >
-                          {student.averageScore}%
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="text-xs font-black px-2.5 py-1 rounded-md w-fit border"
+                            style={{ color: scoreStyle.color, background: scoreStyle.bg, borderColor: scoreStyle.border }}
+                          >
+                            {student.averageScore || 0}%
+                          </span>
+                          <button
+                            onClick={() => handleRemoveStudent(student)}
+                            className="w-8 h-8 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                            title="Remover estudiante"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </motion.div>
                     );
                   })}
@@ -391,7 +534,7 @@ const GroupManager = () => {
         </motion.div>
 
         {/* ── Fila de acciones ── */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
           {/* Añadir estudiante */}
           <div className="bg-card/40 backdrop-blur-md border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all duration-300">
@@ -418,7 +561,7 @@ const GroupManager = () => {
                   className="bg-card border border-white/10 rounded-xl overflow-hidden mb-2 shadow-xl shadow-black/30"
                 >
                   {addResults.map((s) => {
-                    const alreadyIn = selectedGroup?.students.some((st) => st.UserID === s.UserID);
+                    const alreadyIn = selectedGroupStudents.some((st) => st.UserID === s.UserID);
                     return (
                       <button
                         key={s.UserID}
@@ -467,6 +610,32 @@ const GroupManager = () => {
             </Button>
           </div>
 
+          {/* Asignar Examen */}
+          <div className="bg-card/40 backdrop-blur-md border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all duration-300">
+            <div className="flex items-center gap-2 mb-3">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider">Asignar Examen</p>
+            </div>
+            <select
+              value={selectedExamId}
+              onChange={(e) => setSelectedExamId(e.target.value)}
+              className="w-full h-9 px-3 text-sm bg-black/40 border border-white/10 focus-visible:border-primary/50 rounded-xl mb-3 text-white appearance-none cursor-pointer"
+            >
+              <option value="">Selecciona un examen...</option>
+              {allExams.map((exam) => (
+                <option key={exam.ExamID} value={exam.ExamID}>{exam.Title || "Examen sin título"}</option>
+              ))}
+            </select>
+            <Button
+              onClick={handleAssignExam}
+              disabled={!selectedExamId || !selectedGroupId}
+              className="w-full h-9 text-sm bg-primary/90 hover:bg-primary text-white rounded-xl gap-2 disabled:opacity-40"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Asignar a Grupo
+            </Button>
+          </div>
+
           {/* Eliminar grupo */}
           <div className="bg-card/40 backdrop-blur-md border border-white/5 hover:border-red-500/10 rounded-2xl p-5 transition-all duration-300">
             <div className="flex items-center gap-2 mb-3">
@@ -483,7 +652,7 @@ const GroupManager = () => {
               className="w-full h-9 text-sm border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-300 rounded-xl gap-2 disabled:opacity-40 transition-all"
             >
               <Trash2 className="h-4 w-4" />
-              Eliminar "{selectedGroup?.name ?? "—"}"
+              Eliminar "{selectedGroup?.GroupName ?? "—"}"
             </Button>
           </div>
 
