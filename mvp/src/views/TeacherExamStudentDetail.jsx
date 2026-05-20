@@ -34,11 +34,15 @@ const CodeBlock = ({ code, title, icon: Icon }) => (
 
 const RowCountBadge = ({ label, count, variant = "default" }) => {
   const isRef = variant === "ref";
+  const displayCount = count !== null && typeof count === "object"
+    ? (count.rowCount ?? count.rows?.length ?? null)
+    : count;
+
   return (
     <div className={`flex flex-col items-center justify-center rounded-xl border p-5 gap-1 ${isRef ? "bg-muted/10 border-white/5" : "bg-card/40 border-white/10"}`}>
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
-      {count !== null && count !== undefined ? (
-        <span className="text-3xl font-black text-foreground">{count}<span className="text-sm font-semibold text-muted-foreground ml-1">filas</span></span>
+      {displayCount !== null && displayCount !== undefined ? (
+        <span className="text-3xl font-black text-foreground">{displayCount}<span className="text-sm font-semibold text-muted-foreground ml-1">filas</span></span>
       ) : (
         <span className="text-sm text-muted-foreground italic">—</span>
       )}

@@ -390,7 +390,7 @@ const ExamDetailStudent = () => {
                                                             <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-white/5 text-muted-foreground border border-white/10">Referencia</span>
                                                         </div>
                                                         <div className="flex items-center justify-center flex-1 rounded-xl border border-white/5 bg-black/20 py-6">
-                                                            <span className="text-4xl font-black text-emerald-400">{typeof q.expectedOutput === 'number' ? q.expectedOutput : "—"}</span>
+                                                            <span className="text-4xl font-black text-emerald-400">{q.expectedOutput?.rowCount ?? (typeof q.expectedOutput === 'number' ? q.expectedOutput : "—")}</span>
                                                             <span className="text-sm text-muted-foreground ml-2 mt-2">filas</span>
                                                         </div>
                                                     </div>

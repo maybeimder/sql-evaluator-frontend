@@ -3,6 +3,23 @@ import { createContext, useContext, useState, useEffect } from "react";
 const AuthContext = createContext(null);
 const API_URL = import.meta.env.VITE_API_URL;
 
+function decodeJWT(token) {
+    try {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+            window
+                .atob(base64)
+                .split("")
+                .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                .join("")
+        );
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
+    }
+}
+
 export function AuthProvider({ children }) {
     const [accessToken, setAccessToken] = useState(
         localStorage.getItem("accessToken") || null
@@ -34,12 +51,28 @@ export function AuthProvider({ children }) {
         setUser(null);
 
         localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
     }
 
-    // 🔄 REFRESH AUTOMÁTICO
+    // 🔄 REFRESH AUTOMÁTICO DINÁMICO
     useEffect(() => {
-        const interval = setInterval(async () => {
+        if (!accessToken) return;
+
+        let delay = 1000 * 60 * 5; // 5 minutos por defecto si no es decodificable
+
+        const payload = decodeJWT(accessToken);
+        if (payload && payload.exp) {
+            const expTimeMs = payload.exp * 1000;
+            const timeUntilExpiry = expTimeMs - Date.now();
+            
+            // Refrescar 1 minuto antes de expirar, o al 75% del tiempo restante si es menor de 2 min
+            delay = timeUntilExpiry > 120000 
+                ? timeUntilExpiry - 60000 
+                : Math.max(0, timeUntilExpiry * 0.75);
+        }
+
+        const timer = setTimeout(async () => {
             const storedRefresh = localStorage.getItem("refreshToken");
             if (!storedRefresh) return logout();
 
@@ -49,22 +82,24 @@ export function AuthProvider({ children }) {
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
                     body: JSON.stringify({ refreshToken: storedRefresh }),
-
                 });
 
                 if (!res.ok) throw new Error();
 
                 const data = await res.json();
                 localStorage.setItem("accessToken", data.accessToken);
+                if (data.refreshToken) {
+                    localStorage.setItem("refreshToken", data.refreshToken);
+                }
                 setAccessToken(data.accessToken);
             } catch {
                 sessionStorage.setItem("session_expired", "1");
                 logout();
             }
-        }, 1000 * 60 * 10);
+        }, delay);
 
-        return () => clearInterval(interval);
-    }, []);
+        return () => clearTimeout(timer);
+    }, [accessToken]);
 
     useEffect(() => {
         const originalFetch = window.fetch;
