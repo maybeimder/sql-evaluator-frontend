@@ -214,14 +214,9 @@ const Login = ({ noPermission = false }) => {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                    Contraseña
-                                </Label>
-                                <button type="button" className="text-xs text-primary hover:underline cursor-pointer">
-                                    ¿Olvidaste tu contraseña?
-                                </button>
-                            </div>
+                            <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Contraseña
+                            </Label>
                             <Input
                                 id="password"
                                 type="password"
@@ -260,22 +255,6 @@ const Login = ({ noPermission = false }) => {
                             {loading ? "Ingresando..." : "Ingresar"}
                         </Button>
                     </form>
-
-                    {/* Divider */}
-                    <div className="flex items-center gap-3 my-6">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-xs text-muted-foreground">O continúa con</span>
-                        <div className="flex-1 h-px bg-border" />
-                    </div>
-
-                    {/* Botón Roble */}
-                    <button
-                        onClick={() => navigate("/dashboard/student")}
-                        className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        Iniciar sesión con Roble
-                    </button>
 
                     {/* Links */}
                     <div className="mt-6 text-center space-y-3">
